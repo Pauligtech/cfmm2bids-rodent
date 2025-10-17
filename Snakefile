@@ -1,5 +1,5 @@
 import pandas as pd
-from cfmm2tar import query_metadata, download_studies_from_metadata
+from cfmm2tar import query_metadata, download_studies
 from snakebids import bids
 
 if 0:
@@ -15,7 +15,12 @@ if 0:
     df_download = df.sort_values(by='StudyDate')
     df_download.to_csv('study_metadata.tsv',sep='\t',index=False)
 
-
+#        download_studies_from_metadata(
+#            output_dir=output.dicoms_dir,
+#            credentials_file='~/.uwo_credentials.bd',
+#            metadata=df_download,
+#            temp_dir='./temp_dicoms',
+#        )
 
 #some processing (manual + regex + lookup etc) will produce the subject and session columns
 #have done this manually in  study_metadata_withsubjses.tsv
@@ -33,15 +38,19 @@ rule all:
     input: targets
 
 rule download_tar:
+    params:
+        uid=lambda wildcards: lookup(query=f"subject == '{wildcards.subject}'",
+                   within=df).StudyInstanceUID
     output:
         dicoms_dir=directory(bids(
              subject='{subject}',
              session='{session}',
              suffix='dicoms'))
     run:
-        download_studies_from_metadata(
+        print(params.uid)
+        download_studies(
             output_dir=output.dicoms_dir,
             credentials_file='~/.uwo_credentials.bd',
-            metadata=df_download,
+            study_instance_uid=params.uid,
             temp_dir='./temp_dicoms',
         )
