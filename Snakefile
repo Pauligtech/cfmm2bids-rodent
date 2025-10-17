@@ -27,10 +27,12 @@ if 0:
 df = pd.read_csv('study_metadata_withsubjses.tsv',sep='\t')
 print(df)
 print(df.subject)
+
+
 targets = expand(bids(
              subject='{subject}',
              session='{session}',
-             suffix='dicoms'), zip,
+             suffix='heudiconv.done'), zip,
            subject=df.subject,
            session=df.session)
 
@@ -54,3 +56,30 @@ rule download_tar:
             study_instance_uid=params.uid,
             temp_dir='./temp_dicoms',
         )
+
+rule heudiconv:
+    input:
+        dicoms_dir=bids(
+             subject='{subject}',
+             session='{session}',
+             suffix='dicoms'),
+        heuristic='resources/heuristic.py',
+        dcmconfig_json='resources/dcm2niix_config.json'
+
+    output:
+        flag=touch(bids(
+             subject='{subject}',
+             session='{session}',
+             suffix='heudiconv.done'))
+
+    shell:
+        "heudiconv --files {input.dicoms_dir}"
+        " -c dcm2niix"
+        " -o ./test_bids"
+        "  -ss {wildcards.session}"
+        "  -s {wildcards.subject}"
+        "  -f {input.heuristic}"
+        "  --bids"
+        "  --dcmconfig {input.dcmconfig_json} --overwrite"
+        
+

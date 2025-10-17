@@ -29,7 +29,6 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/bidsschematools-1.1.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/boutiques-0.5.31-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/brotli-python-1.1.0-py312h1289d80_4.conda
-      - conda: https://conda.anaconda.org/conda-forge/noarch/bz2file-0.98-py_0.tar.bz2
       - conda: https://conda.anaconda.org/conda-forge/linux-64/bzip2-1.0.8-hda65f42_8.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/ca-certificates-2025.10.5-hbd8a1cb_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/cached_property-1.5.2-pyha770c72_1.tar.bz2
@@ -93,7 +92,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/gts-0.7.6-h977cf35_4.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/h2-4.3.0-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/harfbuzz-11.5.1-h15599e2_0.conda
-      - conda: https://conda.anaconda.org/conda-forge/noarch/heudiconv-1.3.4-pyhd8ed1ab_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/heudiconv-1.3.4-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/hicolor-icon-theme-0.17-ha770c72_2.tar.bz2
       - conda: https://conda.anaconda.org/conda-forge/noarch/hpack-4.1.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/humanfriendly-10.0-pyh707e725_8.conda
@@ -557,16 +556,6 @@ packages:
   - pkg:pypi/brotli?source=hash-mapping
   size: 354149
   timestamp: 1756599553574
-- conda: https://conda.anaconda.org/conda-forge/noarch/bz2file-0.98-py_0.tar.bz2
-  sha256: 4f108fa99daad47a6f2dc33a2dc86de5225b36821f142b88e7e7127809beb30f
-  md5: 784154d757e590f1f26c2427207bfe7a
-  depends:
-  - python
-  license: Apache 2.0
-  purls:
-  - pkg:pypi/bz2file?source=hash-mapping
-  size: 8826
-  timestamp: 1537460074042
 - conda: https://conda.anaconda.org/conda-forge/linux-64/bzip2-1.0.8-hda65f42_8.conda
   sha256: c30daba32ddebbb7ded490f0e371eae90f51e72db620554089103b4a6934b0d5
   md5: 51a19bba1b8ebfb60df25cde030b7ebc
@@ -652,8 +641,10 @@ packages:
   timestamp: 1758716192805
 - pypi: /local/scratch/cfmm2tar
   name: cfmm2tar
-  version: 2.0.3.dev51+gdba38a7ac
-  sha256: 46a3bf97009974208469184af4c7374557c7529d4907cdc60f743081e6d462a1
+  version: 2.0.3.dev59+g757021517.d20251017
+  sha256: a96a69883e4a75c8edab1eee408e1c8611b6805e73ad22dc308ee56883650996
+  requires_dist:
+  - pandas>=2.0.0 ; extra == 'dataframe'
   requires_python: '>=3.11'
   editable: true
 - conda: https://conda.anaconda.org/conda-forge/noarch/charset-normalizer-3.4.3-pyhd8ed1ab_0.conda
@@ -1481,11 +1472,10 @@ packages:
   purls: []
   size: 2427482
   timestamp: 1758640288422
-- conda: https://conda.anaconda.org/conda-forge/noarch/heudiconv-1.3.4-pyhd8ed1ab_0.conda
-  sha256: d014e8381518a30fdd247a9505d2948c7fa5e76b0af65dd92ff3ebb0ebf9a50e
-  md5: f3b797e0ca355a9d8c47c7c4794d394a
+- conda: https://conda.anaconda.org/conda-forge/noarch/heudiconv-1.3.4-pyhd8ed1ab_1.conda
+  sha256: 78a24d1ecef7f0ecb9b18c9f098c47eb8c96dbdca8882dc5d2db3bcb65ae137f
+  md5: d70d2bebe6a534994d3ce420b9db21ab
   depends:
-  - bz2file
   - dcm2niix
   - dcmstack
   - nibabel >=5.0
@@ -1498,8 +1488,8 @@ packages:
   license_family: APACHE
   purls:
   - pkg:pypi/heudiconv?source=hash-mapping
-  size: 8598445
-  timestamp: 1758813916610
+  size: 8607578
+  timestamp: 1760463560099
 - conda: https://conda.anaconda.org/conda-forge/linux-64/hicolor-icon-theme-0.17-ha770c72_2.tar.bz2
   sha256: 336f29ceea9594f15cc8ec4c45fdc29e10796573c697ee0d57ebb7edd7e92043
   md5: bbf6f174dcd3254e19a2f5d2295ce808
