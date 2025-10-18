@@ -60,9 +60,9 @@ def infotodict(seqinfo):
     # ==================================================================================================================
     # resting-state
     func_resting_R = create_key(
-            'sub-{subject}/{session}/func/sub-{subject}_task-rest_dir-PA_{session}_run-{item:01d}_bold')
+            'sub-{subject}/{session}/func/sub-{subject}_{session}_task-rest_dir-PA_run-{item:01d}_bold')
     func_resting_RV = create_key(
-            'sub-{subject}/{session}/func/sub-{subject}_task-rest_dir-AP_{session}_run-{item:01d}_bold')
+            'sub-{subject}/{session}/func/sub-{subject}_{session}_task-rest_dir-AP_run-{item:01d}_bold')
 
     # ==================================================================================================================
     # diffusion

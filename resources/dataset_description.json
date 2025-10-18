@@ -1,0 +1,10 @@
+{
+    "Name": "Name of the dataset",
+    "BIDSVersion": "1.9.0",
+    "DatasetType": "raw",
+    "License": "The license for the dataset",
+    "Authors": [
+        "Author Name 1",
+        "Author Name 2"
+    ]
+}
