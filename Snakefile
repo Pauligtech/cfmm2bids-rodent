@@ -48,6 +48,8 @@ for spec in config['search_specs']:
 df = pd.concat(all_dfs, ignore_index=True)
 
 
+localrules: download_tar
+
 # Build BIDS-style output targets
 targets = expand(
     'bids/sub-{subject}/ses-{session}',
@@ -66,6 +68,7 @@ def get_uid_from_wildcards(wildcards):
         query=f"subject == '{wildcards.subject}' and session == '{wildcards.session}'",
         within=df
     ).StudyInstanceUID
+
 
 
 rule download_tar:
