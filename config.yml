@@ -1,0 +1,22 @@
+credentials_file: ~/.uwo_credentials.bd
+
+heuristic: resources/heuristic.py
+dcmconfig_json: resources/dcm2niix_config.json
+
+
+download_options:
+  temp_dir: /localscratch
+  skip_derived: true
+
+search_specs:
+  - dicom_query:
+      study_description: Prado^*
+      study_date: 20230101-
+    metadata_mappings:
+      subject:
+        source: PatientID
+        pattern: '.+\^.+_([^_]+)$'
+        sanitize: true
+      session:
+        source: StudyDate
+
