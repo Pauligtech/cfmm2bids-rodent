@@ -92,9 +92,14 @@ rule heudiconv:
         dicoms_dir='sourcedata/sub-{subject}/ses-{session}',
         heuristic=config['heuristic'],
         dcmconfig_json=config['dcmconfig_json'],
+    params: 
+        heudiconv_options=config['heudiconv_options']
     output:
         bids_subj_dir=directory('bids/sub-{subject}/ses-{session}')
     shadow: 'minimal'
+    threads: 16
+    resources: 
+        mem_mb=8000
     shell:
         (
             "heudiconv --files {input.dicoms_dir}"
@@ -106,6 +111,7 @@ rule heudiconv:
             " --bids notop"
             " --dcmconfig {input.dcmconfig_json}"
             " --overwrite"
+            " {params.heudiconv_options}"
         )
 
 rule dataset_description:

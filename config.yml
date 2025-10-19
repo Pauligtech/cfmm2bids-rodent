@@ -8,6 +8,8 @@ download_options:
   temp_dir: /localscratch
   skip_derived: true
 
+heudiconv_options: '--minmeta'
+
 search_specs:
   - dicom_query:
       study_description: Prado^*
