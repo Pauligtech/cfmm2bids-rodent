@@ -51,7 +51,7 @@ df = pd.concat(all_dfs, ignore_index=True)
 localrules: download_tar
 
 # Build BIDS-style output targets
-targets = expand(
+sub_ses_targets = expand(
     'bids/sub-{subject}/ses-{session}',
     zip,
     subject=df.subject,
@@ -60,7 +60,9 @@ targets = expand(
 
 
 rule all:
-    input: targets
+    input: 
+        sub_ses_targets,
+        'bids/dataset_description.json'
 
 
 def get_uid_from_wildcards(wildcards):
@@ -92,6 +94,7 @@ rule heudiconv:
         dcmconfig_json=config['dcmconfig_json'],
     output:
         bids_subj_dir=directory('bids/sub-{subject}/ses-{session}')
+    shadow: 'minimal'
     shell:
         (
             "heudiconv --files {input.dicoms_dir}"
@@ -105,5 +108,10 @@ rule heudiconv:
             " --overwrite"
         )
 
-
-
+rule dataset_description:
+    input:
+        'resources/dataset_description.json'
+    output:
+        'bids/dataset_description.json'
+    shell:
+        'cp {input} {output}'

@@ -52,9 +52,9 @@ def infotodict(seqinfo):
     t2w_rare_orig = create_key('sub-{subject}/{session}/anat/sub-{subject}_{session}_acq-RARE_rec-orig_run-{item:01d}_T2w')
     t2w_rare_den = create_key('sub-{subject}/{session}/anat/sub-{subject}_{session}_acq-RARE_rec-denoised_run-{item:01d}_T2w')
 
-    t2starw_mag = create_key('sub-{subject}/{session}/anat/sub-{subject}_{session}_part-mag_run-{item:01d}_T2starw')
+    t2starw_mag = create_key('sub-{subject}/{session}/anat/sub-{subject}_{session}_run-{item:01d}_part-mag_T2starw')
     t2starw_swi = create_key('sub-{subject}/{session}/anat/sub-{subject}_{session}_rec-SWI_run-{item:01d}_T2starw')
-    t2starw_phase = create_key('sub-{subject}/{session}/anat/sub-{subject}_{session}_part-phase_run-{item:01d}_T2starw')
+    t2starw_phase = create_key('sub-{subject}/{session}/anat/sub-{subject}_{session}_run-{item:01d}_part-phase_T2starw')
 
     tof = create_key('sub-{subject}/{session}/anat/sub-{subject}_{session}_acq-3dtof_run-{item:01d}_angio')
     # ==================================================================================================================
@@ -182,3 +182,6 @@ def infotodict(seqinfo):
 
 
     return info
+
+
+
