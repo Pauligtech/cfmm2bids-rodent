@@ -95,7 +95,8 @@ rule heudiconv:
     params: 
         heudiconv_options=config['heudiconv_options']
     output:
-        bids_subj_dir=directory('bids/sub-{subject}/ses-{session}')
+        bids_subj_dir=directory('bids/sub-{subject}/ses-{session}'),
+        heudiconv_dir=directory('sourcedata/heudiconv/sub-{subject}/ses-{session}')
     shadow: 'minimal'
     threads: 16
     resources: 
@@ -112,6 +113,8 @@ rule heudiconv:
             " --dcmconfig {input.dcmconfig_json}"
             " --overwrite"
             " {params.heudiconv_options}"
+            " && mkdir -p {output.heudiconv_dir}"
+            " && cp -r bids/.heudiconv/* {output.heudiconv_dir}/"
         )
 
 rule dataset_description:
