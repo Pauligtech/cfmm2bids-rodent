@@ -8,7 +8,7 @@ download_options:
   temp_dir: /localscratch
   skip_derived: true
 
-heudiconv_options: '--minmeta'
+heudiconv_options: '--minmeta --use-enhanced-dicom --no-sanitize-jsons'
 
 search_specs:
   - dicom_query:
