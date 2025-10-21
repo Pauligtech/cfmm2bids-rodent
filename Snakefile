@@ -58,11 +58,20 @@ sub_ses_targets = expand(
     session=df.session
 )
 
+# Build QC report targets
+qc_report_targets = expand(
+    'qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_gantt.svg',
+    zip,
+    subject=df.subject,
+    session=df.session
+)
+
 
 rule all:
     input: 
         sub_ses_targets,
-        'bids/dataset_description.json'
+        'bids/dataset_description.json',
+        qc_report_targets
 
 
 def get_uid_from_wildcards(wildcards):
@@ -124,3 +133,21 @@ rule dataset_description:
         'bids/dataset_description.json'
     shell:
         'cp {input} {output}'
+
+
+rule generate_qc_report:
+    input:
+        heudiconv_dir='sourcedata/heudiconv/sub-{subject}/ses-{session}',
+        script='resources/generate_qc_report.py'
+    output:
+        gantt='qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_gantt.svg',
+        series_list='qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series-list.svg',
+        unmapped='qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_unmapped.svg'
+    shell:
+        (
+            "python3 {input.script}"
+            " --heudiconv-dir {input.heudiconv_dir}"
+            " --output-dir qc/sub-{wildcards.subject}/ses-{wildcards.session}"
+            " --subject {wildcards.subject}"
+            " --session {wildcards.session}"
+        )
