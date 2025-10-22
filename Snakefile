@@ -86,17 +86,22 @@ rule download_tar:
         uid=get_uid_from_wildcards
     output:
         dicoms_dir=directory('sourcedata/sub-{subject}/ses-{session}')
+    log:
+        'logs/download_tar/sub-{subject}_ses-{session}.log'
     threads: 1
     resources:
         mem_mb=4000,
         runtime=15
     run:
-        download_studies(
-            output_dir=output.dicoms_dir,
-            credentials_file=config['credentials_file'],
-            study_instance_uid=params.uid,
-            **config['download_options']
-        )
+        import sys
+        with open(log[0], 'w') as log_file:
+            sys.stdout = sys.stderr = log_file
+            download_studies(
+                output_dir=output.dicoms_dir,
+                credentials_file=config['credentials_file'],
+                study_instance_uid=params.uid,
+                **config['download_options']
+            )
 
 
 rule heudiconv:
@@ -115,6 +120,8 @@ rule heudiconv:
         auto_txt='sourcedata/heudiconv/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_auto.txt',
         dicominfo_tsv='sourcedata/heudiconv/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_dicominfo.tsv',
         filegroup_json='sourcedata/heudiconv/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_filegroup.json'
+    log:
+        'logs/heudiconv/sub-{subject}_ses-{session}.log'
     shadow: 'minimal'
     threads: 16
     resources: 
@@ -137,6 +144,7 @@ rule heudiconv:
             " && cp {params.in_auto_txt} {output.auto_txt}"
             " && cp {params.in_dicominfo_tsv} {output.dicominfo_tsv}"
             " && cp {params.in_filegroup_json} {output.filegroup_json}"
+            " > {log} 2>&1"
         )
 
 rule dataset_description:
@@ -144,8 +152,10 @@ rule dataset_description:
         'resources/dataset_description.json'
     output:
         'bids/dataset_description.json'
+    log:
+        'logs/dataset_description/dataset_description.log'
     shell:
-        'cp {input} {output}'
+        'cp {input} {output} > {log} 2>&1'
 
 
 rule generate_qc_report:
@@ -157,7 +167,8 @@ rule generate_qc_report:
         gantt='qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_gantt.svg',
         series_list='qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series-list.svg',
         unmapped='qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_unmapped.svg'
-
+    log:
+        'logs/generate_qc_report/sub-{subject}_ses-{session}.log'
     threads: 1
     resources: 
         mem_mb=4000,

@@ -11,3 +11,4 @@ __pycache__/
 bids/
 sourcedata/
 qc/
+logs/
