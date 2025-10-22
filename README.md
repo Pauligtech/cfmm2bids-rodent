@@ -33,17 +33,7 @@ qc/
         └── sub-{subject}_ses-{session}_unmapped.svg
 ```
 
-### Manual QC Report Generation
-
-You can also generate QC reports manually using the script:
-
-```bash
-python3 resources/generate_qc_report.py \
-  --heudiconv-dir sourcedata/heudiconv/sub-001/ses-01 \
-  --output-dir qc/sub-001/ses-01 \
-  --subject 001 \
-  --session 01
-```
+**Note:** The QC report generation is integrated into the Snakemake workflow as a script directive and cannot be run manually as a standalone CLI tool.
 
 ## Usage
 
@@ -62,10 +52,11 @@ python3 resources/generate_qc_report.py \
 │   ├── sub-*/ses-*/           # Downloaded DICOMs
 │   └── heudiconv/             # Heudiconv metadata
 ├── qc/                        # QC reports
-├── resources/                 # Configuration files and scripts
-│   ├── heuristic.py          # Heudiconv heuristic
-│   ├── dcm2niix_config.json  # dcm2niix configuration
+├── scripts/                   # Snakemake scripts
 │   └── generate_qc_report.py # QC report generation script
+├── resources/                 # Configuration files
+│   ├── heuristic.py          # Heudiconv heuristic
+│   └── dcm2niix_config.json  # dcm2niix configuration
 ├── config.yml                # Workflow configuration
 └── Snakefile                 # Snakemake workflow
 ```
