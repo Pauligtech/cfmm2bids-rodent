@@ -94,14 +94,27 @@ rule download_tar:
         runtime=15
     run:
         import sys
+        from pathlib import Path
+        
+        # Ensure log directory exists
+        Path(log[0]).parent.mkdir(parents=True, exist_ok=True)
+        
+        # Redirect stdout and stderr to log file
         with open(log[0], 'w') as log_file:
-            sys.stdout = sys.stderr = log_file
-            download_studies(
-                output_dir=output.dicoms_dir,
-                credentials_file=config['credentials_file'],
-                study_instance_uid=params.uid,
-                **config['download_options']
-            )
+            original_stdout = sys.stdout
+            original_stderr = sys.stderr
+            try:
+                sys.stdout = log_file
+                sys.stderr = log_file
+                download_studies(
+                    output_dir=output.dicoms_dir,
+                    credentials_file=config['credentials_file'],
+                    study_instance_uid=params.uid,
+                    **config['download_options']
+                )
+            finally:
+                sys.stdout = original_stdout
+                sys.stderr = original_stderr
 
 
 rule heudiconv:
@@ -130,6 +143,7 @@ rule heudiconv:
     group: 'convert'
     shell:
         (
+            "mkdir -p $(dirname {log}) && "
             "heudiconv --files {input.dicoms_dir}"
             " -c dcm2niix"
             " -o bids"
@@ -144,7 +158,7 @@ rule heudiconv:
             " && cp {params.in_auto_txt} {output.auto_txt}"
             " && cp {params.in_dicominfo_tsv} {output.dicominfo_tsv}"
             " && cp {params.in_filegroup_json} {output.filegroup_json}"
-            " > {log} 2>&1"
+            " &> {log}"
         )
 
 rule dataset_description:
@@ -155,7 +169,7 @@ rule dataset_description:
     log:
         'logs/dataset_description/dataset_description.log'
     shell:
-        'cp {input} {output} > {log} 2>&1'
+        'mkdir -p $(dirname {log}) && cp {input} {output} &> {log}'
 
 
 rule generate_qc_report:
