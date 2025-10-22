@@ -39,36 +39,32 @@ def parse_auto_txt(auto_txt_path):
         data_str = f.read()
 
     data = ast.literal_eval(data_str)
-    print(data)
-    print(data.keys())
     
 
     #the auto.txt file from heudiconv
     # gives mappings from bids pattern to series id
     bids_to_series = {}
-    for k,v in data.items():
+    for key,series_id_list in data.items():
 
-        bids_pattern = k[0]
-        series_id_list = v
-
+        bids_pattern = f'{key[0]}.{key[1][0]}'
         bids_to_series[bids_pattern] = series_id_list
 
     #but we want to invert this from series to bids
 
-
     # Invert mapping
-    series_to_bids = defaultdict(list)
+    series_to_bids = {}
+
     for bids_str, series_list in bids_to_series.items():
-        for item,series_id in enumerate(series_list):
-            series_to_bids[series_id].append(bids_str.format(subject=snakemake.wildcards.subject,
-                                                            session=f'ses-{snakemake.wildcards.session}',item=item))
+        for item,series_id in enumerate(series_list,1):
+            bids_path = bids_str.format(subject=snakemake.wildcards.subject,
+                                                            session=f'ses-{snakemake.wildcards.session}',item=item)
+            if series_id in series_to_bids:
+                raise ValueError(f"Duplicate series ID found: {series_id!r} (already mapped to {series_to_bids[series_id]!r})")
+            series_to_bids[series_id] = bids_path
+
 
     # Sort keys alphanumerically
     series_to_bids_sorted = dict(sorted(series_to_bids.items(), key=lambda x: x[0]))
-
-    # Optionally, sort the *values* as well
-    for k in series_to_bids_sorted:
-        series_to_bids_sorted[k].sort()
 
 
     print(series_to_bids_sorted)
@@ -231,7 +227,6 @@ def create_series_list(df, mappings, output_path):
     summary_data = []
     for _, row in df.iterrows():
         series_id = row['series_id']
-        print(f'series_id from dicominfo {series_id}')
         bids_path = mappings.get(series_id, 'NOT MAPPED')
         
         summary_data.append({
@@ -246,7 +241,6 @@ def create_series_list(df, mappings, output_path):
     
     summary_df = pd.DataFrame(summary_data)
    
-    print(summary_df)
     # Create figure with table
     fig, ax = plt.subplots(figsize=(16, max(6, len(summary_df) * 0.3)))
     ax.axis('tight')
@@ -365,9 +359,6 @@ auto_txt_path = snakemake.input.auto_txt
 mappings = parse_auto_txt(auto_txt_path)
 df = load_dicominfo(dicominfo_path)
 df = calculate_acquisition_times(df)
-
-# Create output director
-#    snakemake.params.output_dirargs.output_dir.mkdir(parents=True, exist_ok=True)
 
 
 gantt_output = snakemake.output.gantt
