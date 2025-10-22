@@ -194,6 +194,8 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/smart_open-7.3.1-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/smmap-5.0.2-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/bioconda/noarch/snakemake-9.13.3-hdfd78af_0.conda
+      - conda: https://conda.anaconda.org/bioconda/noarch/snakemake-executor-plugin-slurm-1.4.0-pyhdfd78af_0.tar.bz2
+      - conda: https://conda.anaconda.org/bioconda/noarch/snakemake-executor-plugin-slurm-jobstep-0.3.0-pyhdfd78af_0.tar.bz2
       - conda: https://conda.anaconda.org/bioconda/noarch/snakemake-interface-common-1.22.0-pyhd4c3c12_0.conda
       - conda: https://conda.anaconda.org/bioconda/noarch/snakemake-interface-executor-plugins-9.3.9-pyhdfd78af_0.tar.bz2
       - conda: https://conda.anaconda.org/bioconda/noarch/snakemake-interface-logger-plugins-1.2.4-pyhdfd78af_0.tar.bz2
@@ -3174,6 +3176,33 @@ packages:
   purls: []
   size: 10504
   timestamp: 1760725472863
+- conda: https://conda.anaconda.org/bioconda/noarch/snakemake-executor-plugin-slurm-1.4.0-pyhdfd78af_0.tar.bz2
+  sha256: d722b0eb30cb4146219b3df659ce38ee7e97b4c6109268ec40a9a1c2d4016c9d
+  md5: 395cccfe8cc1841f6ae9852de7dfa385
+  depends:
+  - python >=3.11.0,<4.0.0
+  - snakemake-executor-plugin-slurm-jobstep >=0.3.0,<0.4.0
+  - snakemake-interface-common >=1.13.0,<2.0.0
+  - snakemake-interface-executor-plugins >=9.1.1,<10.0.0
+  - throttler >=1.2.2,<2.0.0
+  license: MIT
+  license_family: MIT
+  purls:
+  - pkg:pypi/snakemake-executor-plugin-slurm?source=hash-mapping
+  size: 20296
+  timestamp: 1749809891555
+- conda: https://conda.anaconda.org/bioconda/noarch/snakemake-executor-plugin-slurm-jobstep-0.3.0-pyhdfd78af_0.tar.bz2
+  sha256: de9cc97d872147bfd5928f653c6d8dc1f0f1e47cb744672ffb743c4b2f8c919a
+  md5: 1e3d84ab0cd46fbf1dd4e5b290f7c7a5
+  depends:
+  - python >=3.11.0,<4.0.0
+  - snakemake-interface-common >=1.13.0,<2.0.0
+  - snakemake-interface-executor-plugins >=9.0.0,<10.0.0
+  license: MIT
+  purls:
+  - pkg:pypi/snakemake-executor-plugin-slurm-jobstep?source=hash-mapping
+  size: 12881
+  timestamp: 1739611671448
 - conda: https://conda.anaconda.org/bioconda/noarch/snakemake-interface-common-1.22.0-pyhd4c3c12_0.conda
   sha256: d13802cb086c1b6be2c4e903e01f946fc973436e6100514169df82e537166bce
   md5: e9bb00d8c7d26a5cd220d3d73bee45fb

@@ -47,8 +47,7 @@ for spec in config['search_specs']:
 # Combine all query results into a single DataFrame
 df = pd.concat(all_dfs, ignore_index=True)
 
-
-localrules: download_tar
+localrules: dataset_description
 
 # Build BIDS-style output targets
 sub_ses_targets = expand(
@@ -87,6 +86,10 @@ rule download_tar:
         uid=get_uid_from_wildcards
     output:
         dicoms_dir=directory('sourcedata/sub-{subject}/ses-{session}')
+    threads: 1
+    resources:
+        mem_mb=4000,
+        runtime=15
     run:
         download_studies(
             output_dir=output.dicoms_dir,
@@ -115,7 +118,9 @@ rule heudiconv:
     shadow: 'minimal'
     threads: 16
     resources: 
-        mem_mb=8000
+        mem_mb=8000,
+        runtime=15
+    group: 'convert'
     shell:
         (
             "heudiconv --files {input.dicoms_dir}"
@@ -152,6 +157,12 @@ rule generate_qc_report:
         gantt='qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_gantt.svg',
         series_list='qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series-list.svg',
         unmapped='qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_unmapped.svg'
+
+    threads: 1
+    resources: 
+        mem_mb=4000,
+        runtime=10
+    group: 'convert'
     script:
         'scripts/generate_qc_report.py'
 
