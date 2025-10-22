@@ -2,3 +2,12 @@
 # pixi environments
 .pixi
 *.egg-info
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Generated outputs
+bids/
+sourcedata/
+qc/

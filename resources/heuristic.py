@@ -123,7 +123,7 @@ def infotodict(seqinfo):
     t2w_rare_candidates = []
     for s in seqinfo:
         desc = s.series_description.lower()
-        if ('RARE' in desc):
+        if ('t2_rarevfl' in desc):
            t2w_rare_candidates.append(s)
 
     # Sort by series_id to ensure acquisition order

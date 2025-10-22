@@ -47,8 +47,7 @@ for spec in config['search_specs']:
 # Combine all query results into a single DataFrame
 df = pd.concat(all_dfs, ignore_index=True)
 
-
-localrules: download_tar
+localrules: dataset_description
 
 # Build BIDS-style output targets
 sub_ses_targets = expand(
@@ -58,11 +57,20 @@ sub_ses_targets = expand(
     session=df.session
 )
 
+# Build QC report targets
+qc_report_targets = expand(
+    'qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_gantt.svg',
+    zip,
+    subject=df.subject,
+    session=df.session
+)
+
 
 rule all:
     input: 
         sub_ses_targets,
-        'bids/dataset_description.json'
+        'bids/dataset_description.json',
+        qc_report_targets
 
 
 def get_uid_from_wildcards(wildcards):
@@ -78,6 +86,10 @@ rule download_tar:
         uid=get_uid_from_wildcards
     output:
         dicoms_dir=directory('sourcedata/sub-{subject}/ses-{session}')
+    threads: 1
+    resources:
+        mem_mb=4000,
+        runtime=15
     run:
         download_studies(
             output_dir=output.dicoms_dir,
@@ -93,14 +105,22 @@ rule heudiconv:
         heuristic=config['heuristic'],
         dcmconfig_json=config['dcmconfig_json'],
     params: 
-        heudiconv_options=config['heudiconv_options']
+        heudiconv_options=config['heudiconv_options'],
+        in_auto_txt='bids/.heudiconv/{subject}/ses-{session}/info/{subject}_ses-{session}.auto.txt',
+        in_dicominfo_tsv='bids/.heudiconv/{subject}/ses-{session}/info/dicominfo_ses-{session}.tsv',
+        in_filegroup_json='bids/.heudiconv/{subject}/ses-{session}/info/filegroup_ses-{session}.json',
+        out_info_dir='sourcedata/heudiconv/sub-{subject}/ses-{session}',
     output:
         bids_subj_dir=directory('bids/sub-{subject}/ses-{session}'),
-        heudiconv_dir=directory('sourcedata/heudiconv/sub-{subject}/ses-{session}')
+        auto_txt='sourcedata/heudiconv/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_auto.txt',
+        dicominfo_tsv='sourcedata/heudiconv/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_dicominfo.tsv',
+        filegroup_json='sourcedata/heudiconv/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_filegroup.json'
     shadow: 'minimal'
     threads: 16
     resources: 
-        mem_mb=8000
+        mem_mb=8000,
+        runtime=15
+    group: 'convert'
     shell:
         (
             "heudiconv --files {input.dicoms_dir}"
@@ -113,8 +133,10 @@ rule heudiconv:
             " --dcmconfig {input.dcmconfig_json}"
             " --overwrite"
             " {params.heudiconv_options}"
-            " && mkdir -p {output.heudiconv_dir}"
-            " && cp -r bids/.heudiconv/* {output.heudiconv_dir}/"
+            " && mkdir -p {params.out_info_dir}"
+            " && cp {params.in_auto_txt} {output.auto_txt}"
+            " && cp {params.in_dicominfo_tsv} {output.dicominfo_tsv}"
+            " && cp {params.in_filegroup_json} {output.filegroup_json}"
         )
 
 rule dataset_description:
@@ -124,3 +146,23 @@ rule dataset_description:
         'bids/dataset_description.json'
     shell:
         'cp {input} {output}'
+
+
+rule generate_qc_report:
+    input:
+        auto_txt='sourcedata/heudiconv/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_auto.txt',
+        dicominfo_tsv='sourcedata/heudiconv/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_dicominfo.tsv',
+        filegroup_json='sourcedata/heudiconv/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_filegroup.json'
+    output:
+        gantt='qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_gantt.svg',
+        series_list='qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series-list.svg',
+        unmapped='qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_unmapped.svg'
+
+    threads: 1
+    resources: 
+        mem_mb=4000,
+        runtime=10
+    group: 'convert'
+    script:
+        'scripts/generate_qc_report.py'
+
