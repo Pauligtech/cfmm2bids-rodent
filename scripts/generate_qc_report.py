@@ -10,11 +10,13 @@ This script reads heudiconv metadata (*.auto.txt, dicominfo.tsv) and generates:
 Outputs are saved as SVG figures.
 """
 
-import argparse
 import re
-import sys
 from pathlib import Path
 from datetime import datetime, timedelta
+import ast
+from collections import defaultdict
+from snakemake.utils import format
+
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -30,28 +32,50 @@ def parse_auto_txt(auto_txt_path):
         dict: Mapping of series_id to BIDS path
     """
     mappings = {}
-    
+
+
+
     with open(auto_txt_path, 'r') as f:
-        lines = f.readlines()
+        data_str = f.read()
+
+    data = ast.literal_eval(data_str)
+    print(data)
+    print(data.keys())
     
-    current_series_id = None
-    for line in lines:
-        line = line.strip()
-        
-        # Match series info line: "seqinfo: <series_id> <description> [...]"
-        series_match = re.match(r'seqinfo:\s+(\d+)\s+(.+?)(?:\s+\[.*\])?$', line)
-        if series_match:
-            current_series_id = int(series_match.group(1))
-            continue
-        
-        # Match BIDS mapping line: "  > <bids_path>"
-        bids_match = re.match(r'\s*>\s+(.+)$', line)
-        if bids_match and current_series_id is not None:
-            bids_path = bids_match.group(1)
-            mappings[current_series_id] = bids_path
-            current_series_id = None
+
+    #the auto.txt file from heudiconv
+    # gives mappings from bids pattern to series id
+    bids_to_series = {}
+    for k,v in data.items():
+
+        bids_pattern = k[0]
+        series_id_list = v
+
+        bids_to_series[bids_pattern] = series_id_list
+
+    #but we want to invert this from series to bids
+
+
+    # Invert mapping
+    series_to_bids = defaultdict(list)
+    for bids_str, series_list in bids_to_series.items():
+        for item,series_id in enumerate(series_list):
+            series_to_bids[series_id].append(bids_str.format(subject=snakemake.wildcards.subject,
+                                                            session=f'ses-{snakemake.wildcards.session}',item=item))
+
+    # Sort keys alphanumerically
+    series_to_bids_sorted = dict(sorted(series_to_bids.items(), key=lambda x: x[0]))
+
+    # Optionally, sort the *values* as well
+    for k in series_to_bids_sorted:
+        series_to_bids_sorted[k].sort()
+
+
+    print(series_to_bids_sorted)
+    return series_to_bids_sorted
+
+
     
-    return mappings
 
 
 def load_dicominfo(dicominfo_path):
@@ -207,6 +231,7 @@ def create_series_list(df, mappings, output_path):
     summary_data = []
     for _, row in df.iterrows():
         series_id = row['series_id']
+        print(f'series_id from dicominfo {series_id}')
         bids_path = mappings.get(series_id, 'NOT MAPPED')
         
         summary_data.append({
@@ -220,7 +245,8 @@ def create_series_list(df, mappings, output_path):
         })
     
     summary_df = pd.DataFrame(summary_data)
-    
+   
+    print(summary_df)
     # Create figure with table
     fig, ax = plt.subplots(figsize=(16, max(6, len(summary_df) * 0.3)))
     ax.axis('tight')
@@ -231,7 +257,7 @@ def create_series_list(df, mappings, output_path):
                      colLabels=summary_df.columns,
                      cellLoc='left',
                      loc='center',
-                     colWidths=[0.08, 0.18, 0.15, 0.12, 0.08, 0.08, 0.31])
+                     colWidths=[0.08, 0.18, 0.15, 0.12, 0.08, 0.08, 0.61])
     
     table.auto_set_font_size(False)
     table.set_fontsize(8)
@@ -326,81 +352,30 @@ def create_unmapped_summary(df, mappings, output_path):
     print(f"Saved unmapped summary to {output_path}")
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description='Generate QC report for heudiconv conversion'
-    )
-    parser.add_argument(
-        '--heudiconv-dir',
-        required=True,
-        type=Path,
-        help='Path to heudiconv directory (e.g., sourcedata/heudiconv/sub-001/ses-01)'
-    )
-    parser.add_argument(
-        '--output-dir',
-        required=True,
-        type=Path,
-        help='Directory to save QC reports'
-    )
-    parser.add_argument(
-        '--subject',
-        required=True,
-        help='Subject ID'
-    )
-    parser.add_argument(
-        '--session',
-        required=True,
-        help='Session ID'
-    )
-    
-    args = parser.parse_args()
-    
-    # Construct paths to input files
-    info_dir = args.heudiconv_dir / 'info'
-    dicominfo_path = info_dir / 'dicominfo.tsv'
-    auto_txt_pattern = info_dir / f'sub-{args.subject}_ses-{args.session}.auto.txt'
-    
-    # Find auto.txt file (may have different naming)
-    auto_txt_files = list(info_dir.glob('*.auto.txt'))
-    if not auto_txt_files:
-        print(f"Error: No *.auto.txt file found in {info_dir}")
-        sys.exit(1)
-    auto_txt_path = auto_txt_files[0]
-    
-    # Check if files exist
-    if not dicominfo_path.exists():
-        print(f"Error: dicominfo.tsv not found at {dicominfo_path}")
-        sys.exit(1)
-    
-    print(f"Reading heudiconv metadata from {args.heudiconv_dir}")
-    print(f"  - dicominfo.tsv: {dicominfo_path}")
-    print(f"  - auto.txt: {auto_txt_path}")
-    
-    # Load data
-    mappings = parse_auto_txt(auto_txt_path)
-    df = load_dicominfo(dicominfo_path)
-    df = calculate_acquisition_times(df)
-    
-    # Create output directory
-    args.output_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Generate reports
-    print(f"\nGenerating QC reports for sub-{args.subject} ses-{args.session}...")
-    
-    gantt_output = args.output_dir / f'sub-{args.subject}_ses-{args.session}_gantt.svg'
-    create_gantt_chart(df, mappings, gantt_output)
-    
-    series_list_output = args.output_dir / f'sub-{args.subject}_ses-{args.session}_series-list.svg'
-    create_series_list(df, mappings, series_list_output)
-    
-    unmapped_output = args.output_dir / f'sub-{args.subject}_ses-{args.session}_unmapped.svg'
-    create_unmapped_summary(df, mappings, unmapped_output)
-    
-    print(f"\n✓ QC reports generated successfully in {args.output_dir}")
-    print(f"  - Gantt chart: {gantt_output.name}")
-    print(f"  - Series list: {series_list_output.name}")
-    print(f"  - Unmapped summary: {unmapped_output.name}")
 
 
-if __name__ == '__main__':
-    main()
+
+#main 
+
+# Construct paths to input files
+dicominfo_path = snakemake.input.dicominfo_tsv
+auto_txt_path = snakemake.input.auto_txt
+
+# Load data
+mappings = parse_auto_txt(auto_txt_path)
+df = load_dicominfo(dicominfo_path)
+df = calculate_acquisition_times(df)
+
+# Create output director
+#    snakemake.params.output_dirargs.output_dir.mkdir(parents=True, exist_ok=True)
+
+
+gantt_output = snakemake.output.gantt
+create_gantt_chart(df, mappings, gantt_output)
+
+series_list_output = snakemake.output.series_list
+create_series_list(df, mappings, series_list_output)
+
+unmapped_output = snakemake.output.unmapped
+create_unmapped_summary(df, mappings, unmapped_output)
+

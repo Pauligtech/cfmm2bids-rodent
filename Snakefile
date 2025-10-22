@@ -102,10 +102,16 @@ rule heudiconv:
         heuristic=config['heuristic'],
         dcmconfig_json=config['dcmconfig_json'],
     params: 
-        heudiconv_options=config['heudiconv_options']
+        heudiconv_options=config['heudiconv_options'],
+        in_auto_txt='bids/.heudiconv/{subject}/ses-{session}/info/{subject}_ses-{session}.auto.txt',
+        in_dicominfo_tsv='bids/.heudiconv/{subject}/ses-{session}/info/dicominfo_ses-{session}.tsv',
+        in_filegroup_json='bids/.heudiconv/{subject}/ses-{session}/info/filegroup_ses-{session}.json',
+        out_info_dir='sourcedata/heudiconv/sub-{subject}/ses-{session}',
     output:
         bids_subj_dir=directory('bids/sub-{subject}/ses-{session}'),
-        heudiconv_dir=directory('sourcedata/heudiconv/sub-{subject}/ses-{session}')
+        auto_txt='sourcedata/heudiconv/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_auto.txt',
+        dicominfo_tsv='sourcedata/heudiconv/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_dicominfo.tsv',
+        filegroup_json='sourcedata/heudiconv/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_filegroup.json'
     shadow: 'minimal'
     threads: 16
     resources: 
@@ -122,8 +128,10 @@ rule heudiconv:
             " --dcmconfig {input.dcmconfig_json}"
             " --overwrite"
             " {params.heudiconv_options}"
-            " && mkdir -p {output.heudiconv_dir}"
-            " && cp -r bids/.heudiconv/* {output.heudiconv_dir}/"
+            " && mkdir -p {params.out_info_dir}"
+            " && cp {params.in_auto_txt} {output.auto_txt}"
+            " && cp {params.in_dicominfo_tsv} {output.dicominfo_tsv}"
+            " && cp {params.in_filegroup_json} {output.filegroup_json}"
         )
 
 rule dataset_description:
@@ -137,17 +145,13 @@ rule dataset_description:
 
 rule generate_qc_report:
     input:
-        heudiconv_dir='sourcedata/heudiconv/sub-{subject}/ses-{session}',
-        script='resources/generate_qc_report.py'
+        auto_txt='sourcedata/heudiconv/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_auto.txt',
+        dicominfo_tsv='sourcedata/heudiconv/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_dicominfo.tsv',
+        filegroup_json='sourcedata/heudiconv/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_filegroup.json'
     output:
         gantt='qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_gantt.svg',
         series_list='qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series-list.svg',
         unmapped='qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_unmapped.svg'
-    shell:
-        (
-            "python3 {input.script}"
-            " --heudiconv-dir {input.heudiconv_dir}"
-            " --output-dir qc/sub-{wildcards.subject}/ses-{wildcards.session}"
-            " --subject {wildcards.subject}"
-            " --session {wildcards.session}"
-        )
+    script:
+        'scripts/generate_qc_report.py'
+
