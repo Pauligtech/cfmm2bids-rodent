@@ -24,7 +24,7 @@ df = post_filter(df,config['post_filter_specs'])
 
 #write this out so user can inspect
 print('Writing list of filtered studies to cfmm2bids_filtered_studies.tsv')
-df.to_csv('cfmm2bids_filtered_studies.tsv',sep='\t',index=False)
+df.to_csv('cfmm2bids_filtered_studies.tsv', sep='\t', index=False)
 
 
 localrules: dataset_description
