@@ -1,53 +1,34 @@
-import pandas as pd
 from pathlib import Path
-from cfmm2tar import query_metadata, download_studies
+from lib.query_filter import validate_column, query_dicoms, post_filter
 
 configfile: 'config.yml'
 
-all_dfs = []
 
-for spec in config['search_specs']:
-    # Query DICOM metadata
-    df_ = query_metadata(
-        credentials_file=config['credentials_file'],
-        return_type="dataframe",
-        **spec['dicom_query']
-    )
+df = query_dicoms(config['search_specs'],
+                  credentials_file=config['credentials_file'])
 
-    # Skip if empty
-    if df_.empty:
-        continue
+# Validate both columns
+valid_subject = validate_column(df, 'subject')
+valid_session = validate_column(df, 'session')
 
-    # Apply metadata extraction settings
-    mappings = spec.get('metadata_mappings', {})
-    for target, mapping in mappings.items():
-        source_col = mapping['source']
-        series = df_[source_col]
+# Optionally, check if all rows are valid overall
+all_valid = valid_subject & valid_session
+if all_valid.all():
+    print("✅ All subject and session ids are valid!")
+else:
+    print("⚠️ Some rows have invalid entries:")
+    print(df[['StudyDescription','PatientID','StudyDate','subject','session']][~all_valid])
 
-        # Optional regex extraction
-        if 'pattern' in mapping:
-            series = series.str.extract(mapping['pattern'], expand=False)
 
-        # Optional cleaning / sanitization
-        if mapping.get('sanitize', True):
-            series = series.str.replace(r'[^A-Za-z0-9]', '', regex=True)
+df = post_filter(df,config['post_filter_specs'])
 
-        # Optional remapping of specific values
-        if 'map' in mapping:
-            series = series.replace(mapping['map'])
+#write this out so user can inspect
+print('Writing list of filtered studies to cfmm2bids_filtered_studies.tsv')
+df.to_csv('cfmm2bids_filtered_studies.tsv', sep='\t', index=False)
 
-        # Assign to target field
-        df_[target] = series
-
-    # Record query info for traceability (optional)
-    df_['query_params'] = str(spec['dicom_query'])
-
-    all_dfs.append(df_)
-
-# Combine all query results into a single DataFrame
-df = pd.concat(all_dfs, ignore_index=True)
 
 localrules: dataset_description
+
 
 # Build BIDS-style output targets
 sub_ses_targets = expand(
@@ -59,7 +40,7 @@ sub_ses_targets = expand(
 
 # Build QC report targets
 qc_report_targets = expand(
-    'qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_gantt.svg',
+    'sourcedata/qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series.svg',
     zip,
     subject=df.subject,
     session=df.session
@@ -74,30 +55,34 @@ rule all:
 
 
 def get_uid_from_wildcards(wildcards):
-    return lookup(
+    matches = lookup(
         query=f"subject == '{wildcards.subject}' and session == '{wildcards.session}'",
         within=df
-    ).StudyInstanceUID
+    )
+    if isinstance(matches, tuple):
+        return matches.StudyInstanceUID
+    else:
+        ids = [m.StudyInstanceUID for m in matches]
+        bad_ids = "\n".join(ids)
+        raise LookupError(f'Multiple studies matched with identical subject and session identifiers: \n{bad_ids}')
 
 
 
 rule download_tar:
     params:
-        uid=get_uid_from_wildcards
+        uid=get_uid_from_wildcards,
+        cfmm2tar_download_options=config['cfmm2tar_download_options'],
+        creds_file=config['credentials_file']
     output:
         dicoms_dir=directory('sourcedata/sub-{subject}/ses-{session}')
+    log:
+        'logs/download_tar/sub-{subject}_ses-{session}.log'
     threads: 1
     resources:
         mem_mb=4000,
         runtime=15
-    run:
-        download_studies(
-            output_dir=output.dicoms_dir,
-            credentials_file=config['credentials_file'],
-            study_instance_uid=params.uid,
-            **config['download_options']
-        )
-
+    shell:
+        "cfmm2tar -c {params.creds_file} {params.cfmm2tar_download_options} -u {params.uid} {output.dicoms_dir} &> {log}"
 
 rule heudiconv:
     input:
@@ -115,6 +100,8 @@ rule heudiconv:
         auto_txt='sourcedata/heudiconv/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_auto.txt',
         dicominfo_tsv='sourcedata/heudiconv/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_dicominfo.tsv',
         filegroup_json='sourcedata/heudiconv/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_filegroup.json'
+    log:
+        'logs/heudiconv/sub-{subject}_ses-{session}.log'
     shadow: 'minimal'
     threads: 16
     resources: 
@@ -132,7 +119,7 @@ rule heudiconv:
             " --bids notop"
             " --dcmconfig {input.dcmconfig_json}"
             " --overwrite"
-            " {params.heudiconv_options}"
+            " {params.heudiconv_options} &> {log}"
             " && mkdir -p {params.out_info_dir}"
             " && cp {params.in_auto_txt} {output.auto_txt}"
             " && cp {params.in_dicominfo_tsv} {output.dicominfo_tsv}"
@@ -144,8 +131,10 @@ rule dataset_description:
         'resources/dataset_description.json'
     output:
         'bids/dataset_description.json'
+    log:
+        'logs/dataset_description/dataset_description.log'
     shell:
-        'cp {input} {output}'
+        'cp {input} {output} &> {log}'
 
 
 rule generate_qc_report:
@@ -154,10 +143,10 @@ rule generate_qc_report:
         dicominfo_tsv='sourcedata/heudiconv/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_dicominfo.tsv',
         filegroup_json='sourcedata/heudiconv/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_filegroup.json'
     output:
-        gantt='qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_gantt.svg',
-        series_list='qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series-list.svg',
-        unmapped='qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_unmapped.svg'
-
+        series_list='sourcedata/qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series.svg',
+        unmapped='sourcedata/qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_unmapped.svg'
+    log:
+        'logs/generate_qc_report/sub-{subject}_ses-{session}.log'
     threads: 1
     resources: 
         mem_mb=4000,
