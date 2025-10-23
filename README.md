@@ -12,24 +12,21 @@ A Snakemake workflow for converting CFMM DICOM data to BIDS format using heudico
 
 The workflow automatically generates QC reports for each subject/session after heudiconv conversion. The reports include:
 
-1. **Gantt Chart** (`*_gantt.svg`): A timeline visualization showing all DICOM series across acquisition time, color-coded by modality (anatomical, functional, diffusion, etc.)
-
-2. **Series List** (`*_series-list.svg`): A detailed table showing each series with:
+1. **Series List** (`*_series.svg`): A detailed table showing each series with:
    - Series ID and description
    - Protocol name
    - Image dimensions
    - TR and TE values
    - Corresponding BIDS filename (or "NOT MAPPED" if unmapped)
 
-3. **Unmapped Summary** (`*_unmapped.svg`): A summary of series that were not mapped to BIDS, helping identify potential missing data or heuristic issues
+2. **Unmapped Summary** (`*_unmapped.svg`): A summary of series that were not mapped to BIDS, helping identify potential missing data or heuristic issues
 
-QC reports are saved in the `qc/` directory with the structure:
+QC reports are saved in the `sourcedata/qc/` directory with the structure:
 ```
-qc/
+sourcedata/qc/
 └── sub-{subject}/
     └── ses-{session}/
-        ├── sub-{subject}_ses-{session}_gantt.svg
-        ├── sub-{subject}_ses-{session}_series-list.svg
+        ├── sub-{subject}_ses-{session}_series.svg
         └── sub-{subject}_ses-{session}_unmapped.svg
 ```
 
@@ -37,38 +34,53 @@ qc/
 
 ## Usage
 
-1. Configure your search specifications in `config.yml`
-2. Run the workflow:
+1. Install [pixi](https://pixi.sh/latest/installation/)
    ```bash
-   snakemake --cores all
+   curl -fsSL https://pixi.sh/install.sh | sh
    ```
+2. Clone the [cfmm2bids repository](https://github.com/akhanf/cfmm2bids)
+   ```bash
+   git clone https://github.com/akhanf/cfmm2bids
+   cd cfmm2bids
+   ```
+3. Install dependencies into pixi virtual environment
+   ```bash
+   pixi install
+   ```
+4. Configure your search specifications by editing the `config.yml`
+5. Run the workflow as a dry-run:
+   ```bash
+   pixi run snakemake --dry-run
+6. Run the workflow on local cores:
+   ```bash
+   pixi run snakemake --cores all
+   ```
+7. Run the workflow on a SLURM system:
+   ```bash
+   pixi run snakemake --executor slurm 
+   ```   
 
-## Directory Structure
+## Output Directory Structure
 
 ```
 .
 ├── bids/                       # BIDS-formatted output
-├── sourcedata/                 # Source DICOM data
-│   ├── sub-*/ses-*/           # Downloaded DICOMs
-│   └── heudiconv/             # Heudiconv metadata
-├── qc/                        # QC reports
-├── scripts/                   # Snakemake scripts
-│   └── generate_qc_report.py # QC report generation script
+│   └──sub-*/ses-*/            # Downloaded DICOMs
+└── sourcedata/                 # Source DICOM data
+    ├── sub-*/ses-*/           # Downloaded DICOMs
+    ├── heudiconv/             # Heudiconv metadata
+    └── qc/                    # QC reports
+```
+
+## Repository Directory Structure
+```
+├── workflow/                  # Workflow files
+│   ├── Snakefile              # Snakemake workflow
+│   ├── lib/                   # Python module with helper functions
+│   └── scripts/               # Workflow scripts 
 ├── resources/                 # Configuration files
 │   ├── heuristic.py          # Heudiconv heuristic
 │   └── dcm2niix_config.json  # dcm2niix configuration
-├── config.yml                # Workflow configuration
-└── Snakefile                 # Snakemake workflow
+└── config.yml                # Workflow configuration
 ```
 
-## Requirements
-
-- Python 3.11+
-- Snakemake
-- heudiconv
-- dcm2niix
-- pandas
-- matplotlib
-- cfmm2tar
-
-See `pixi.toml` for the complete list of dependencies.
