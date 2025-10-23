@@ -13,7 +13,6 @@ def validate_column(df, col):
     # Combine both conditions
     valid = non_blank & alphanumeric
     
-   
     return valid
 
 
