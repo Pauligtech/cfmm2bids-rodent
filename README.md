@@ -12,24 +12,21 @@ A Snakemake workflow for converting CFMM DICOM data to BIDS format using heudico
 
 The workflow automatically generates QC reports for each subject/session after heudiconv conversion. The reports include:
 
-1. **Gantt Chart** (`*_gantt.svg`): A timeline visualization showing all DICOM series across acquisition time, color-coded by modality (anatomical, functional, diffusion, etc.)
-
-2. **Series List** (`*_series-list.svg`): A detailed table showing each series with:
+1. **Series List** (`*_series.svg`): A detailed table showing each series with:
    - Series ID and description
    - Protocol name
    - Image dimensions
    - TR and TE values
    - Corresponding BIDS filename (or "NOT MAPPED" if unmapped)
 
-3. **Unmapped Summary** (`*_unmapped.svg`): A summary of series that were not mapped to BIDS, helping identify potential missing data or heuristic issues
+2. **Unmapped Summary** (`*_unmapped.svg`): A summary of series that were not mapped to BIDS, helping identify potential missing data or heuristic issues
 
-QC reports are saved in the `qc/` directory with the structure:
+QC reports are saved in the `sourcedata/qc/` directory with the structure:
 ```
-qc/
+sourcedata/qc/
 └── sub-{subject}/
     └── ses-{session}/
-        ├── sub-{subject}_ses-{session}_gantt.svg
-        ├── sub-{subject}_ses-{session}_series-list.svg
+        ├── sub-{subject}_ses-{session}_series.svg
         └── sub-{subject}_ses-{session}_unmapped.svg
 ```
 
@@ -50,15 +47,18 @@ qc/
 ├── bids/                       # BIDS-formatted output
 ├── sourcedata/                 # Source DICOM data
 │   ├── sub-*/ses-*/           # Downloaded DICOMs
-│   └── heudiconv/             # Heudiconv metadata
-├── qc/                        # QC reports
-├── scripts/                   # Snakemake scripts
-│   └── generate_qc_report.py # QC report generation script
+│   ├── heudiconv/             # Heudiconv metadata
+│   └── qc/                    # QC reports
+├── workflow/                  # Workflow files
+│   ├── Snakefile              # Snakemake workflow
+│   ├── lib/                   # Python modules
+│   │   └── query_filter.py   # DICOM query filtering
+│   └── scripts/               # Workflow scripts
+│       └── generate_qc_report.py # QC report generation script
 ├── resources/                 # Configuration files
 │   ├── heuristic.py          # Heudiconv heuristic
 │   └── dcm2niix_config.json  # dcm2niix configuration
-├── config.yml                # Workflow configuration
-└── Snakefile                 # Snakemake workflow
+└── config.yml                # Workflow configuration
 ```
 
 ## Requirements
