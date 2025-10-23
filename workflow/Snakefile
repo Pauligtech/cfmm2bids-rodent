@@ -59,7 +59,7 @@ def get_uid_from_wildcards(wildcards):
         query=f"subject == '{wildcards.subject}' and session == '{wildcards.session}'",
         within=df
     )
-    if isinstance(matches,tuple):
+    if isinstance(matches, tuple):
         return matches.StudyInstanceUID
     else:
         ids = [m.StudyInstanceUID for m in matches]
