@@ -75,5 +75,3 @@ def post_filter(df, post_filter_specs):
         df = df.query(f"not ({q})")
 
     return df
-
-
