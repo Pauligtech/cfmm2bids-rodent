@@ -1,0 +1,43 @@
+credentials_file: ~/.uwo_credentials.bd
+
+heuristic: resources/Menon_CogMSv2.py
+dcmconfig_json: resources/dcm2niix_config.json
+
+cfmm2tar_download_options: ''
+
+heudiconv_options: '--minmeta '
+
+search_specs:
+  - dicom_query:
+      study_description: Menon^CogMS
+      study_date: 20230101-20230301
+    metadata_mappings:
+      subject:
+        source: PatientID
+        pattern: '[sS][fF][cC][-_]?([0-9]+)'
+        sanitize: true
+      session:
+        source: PatientID
+        pattern: '[sS][fF][cC][-_]?[0-9]+[-_](.+)$'
+        sanitize: true
+        fillna: '01'
+        map:
+          v2: '02'
+          V2: '02'
+
+
+
+post_filter_specs:
+  include:
+  exclude:
+    - PatientID == '23.05.26-10:43:49-DST-1.3.12.2.1107.5.2.0.18932'
+    - PatientID == 'TriggerTest'
+    - subject != subject # if subject is nan 
+    - subject == '305'
+
+merge_duplicates: True
+
+reorient:
+  do_reorient: False
+
+

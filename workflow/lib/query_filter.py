@@ -51,6 +51,9 @@ def query_dicoms(search_specs, **query_metadata_kwargs):
             if 'map' in mapping:
                 series = series.replace(mapping['map'])
 
+            if 'fillna' in mapping:
+                series = series.fillna(mapping['fillna'])
+
             # Assign to target field
             df_[target] = series
 
@@ -60,6 +63,9 @@ def query_dicoms(search_specs, **query_metadata_kwargs):
         all_dfs.append(df_)
 
     # Combine all query results into a single DataFrame
+    if len(all_dfs)==0:
+        raise LookupError('No matching studies found!')
+    
     df = pd.concat(all_dfs, ignore_index=True)
 
     return df
