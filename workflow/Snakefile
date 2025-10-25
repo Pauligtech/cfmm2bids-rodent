@@ -63,8 +63,11 @@ def get_uid_from_wildcards(wildcards):
         return matches.StudyInstanceUID
     else:
         ids = [m.StudyInstanceUID for m in matches]
-        bad_ids = "\n".join(ids)
-        raise LookupError(f'Multiple studies matched with identical subject and session identifiers: \n{bad_ids}')
+        if config["merge_duplicates"]:
+            print(f"WARNING: Merging multiple matches for {wildcards}")
+        else:
+            bad_ids = "\n".join(ids)
+            raise LookupError(f'Multiple studies matched for {wildcards}: \n{bad_ids}\nThese can be merged instead by using setting in the config "merge_ducplicates: true" ')
 
 
 
