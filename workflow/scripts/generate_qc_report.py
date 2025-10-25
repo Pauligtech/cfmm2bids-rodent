@@ -56,18 +56,17 @@ def parse_auto_txt(auto_txt_path):
 
     for bids_str, series_list in bids_to_series.items():
         for item,series_id in enumerate(series_list,1):
-            bids_path = bids_str.format(subject=snakemake.wildcards.subject,
-                                                            session=f'ses-{snakemake.wildcards.session}',item=item)
+            if isinstance(series_id,dict):
+                series_id = series_id['item']
             if series_id in series_to_bids:
                 raise ValueError(f"Duplicate series ID found: {series_id!r} (already mapped to {series_to_bids[series_id]!r})")
-            series_to_bids[series_id] = bids_path
+            series_to_bids[series_id] = bids_str
 
 
     # Sort keys alphanumerically
     series_to_bids_sorted = dict(sorted(series_to_bids.items(), key=lambda x: x[0]))
 
 
-    print(series_to_bids_sorted)
     return series_to_bids_sorted
 
 
