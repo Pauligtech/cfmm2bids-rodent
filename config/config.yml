@@ -35,12 +35,13 @@ study_filter_specs:
 
 # 3. download
 cfmm2tar_download_options: '--skip-derived'
+merge_duplicate_studies: False  
 
 
 
 # 4. convert
 heudiconv_options: '--minmeta --use-enhanced-dicom --no-sanitize-jsons'
-heuristic: resources/heuristic.py
+heuristic: heuristics/trident_15T.py
 dcmconfig_json: resources/dcm2niix_config.json
 
 

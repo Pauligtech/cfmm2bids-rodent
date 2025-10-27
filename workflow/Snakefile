@@ -101,11 +101,11 @@ def get_uid_from_wildcards(wildcards):
         return matches.StudyInstanceUID
     else:
         ids = [m.StudyInstanceUID for m in matches]
-        if config["merge_duplicates"]:
+        if config["merge_duplicate_studies"]:
             print(f"WARNING: Merging multiple matches for {wildcards}")
         else:
             bad_ids = "\n".join(ids)
-            raise LookupError(f'Multiple studies matched for {wildcards}: \n{bad_ids}\nThese can be merged instead by using setting in the config "merge_ducplicates: true" ')
+            raise LookupError(f'Multiple studies matched for {wildcards}: \n{bad_ids}\nThese can be merged instead by using setting in the config "merge_duplicate_studies: true" ')
 
 
 
@@ -168,7 +168,7 @@ rule heudiconv:
             " && cp {params.in_filegroup_json} {output.filegroup_json}"
         )
 
-rule init_dataset_description:
+rule dataset_description_for_convert:
     input:
         'resources/dataset_description.json'
     output:
@@ -244,9 +244,9 @@ rule post_convert_fix:
         "scripts/post_convert_fix.py"
 
 
-rule fix_dataset_description:
+rule dataset_description_for_fix:
     input:
-        'resources/dataset_description.json'
+        stage_convert / 'bids/dataset_description.json'
     output:
         stage_fix / 'bids/dataset_description.json'
     log:
@@ -298,7 +298,7 @@ rule final_bids_subj:
 rule final_dataset_description:
     input:
         validator=stage_fix/'qc/bids_validator.json', #require validated
-        dd_json='resources/dataset_description.json'
+        dd_json=stage_fix/'bids/dataset_description.json'
     output:
         dd_json=final_bids_dir / 'dataset_description.json'
     log:
