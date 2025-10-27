@@ -35,6 +35,11 @@ select = [
 # Ignore specific rules if needed
 ignore = [
     "E501",  # Line too long (handled by formatter)
+    "F821",  # Undefined snakemake in scripts
+    "SIM115", #Use a context manager for opening files in Logger
+    "SIM102", #nested if statements in heuristics
+    "N806", #case in variable names in heuristics
+
 ]
 
 [tool.ruff.format]

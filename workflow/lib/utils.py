@@ -1,6 +1,7 @@
 import logging
 import sys
 
+
 def setup_logger(log_file=None):
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.INFO)
@@ -20,4 +21,3 @@ def setup_logger(log_file=None):
         sys.stderr = open(log_file, "a")
 
     return logger
-

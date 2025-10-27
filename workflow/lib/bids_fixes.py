@@ -7,21 +7,27 @@ They are auto-registered via the @register_fix decorator.
 """
 
 import json
-import nibabel as nib
 from pathlib import Path
+
+import nibabel as nib
 
 # --- global registry ---
 FIX_REGISTRY = {}
 
+
 def register_fix(name=None):
     """Decorator to register a fix function automatically."""
+
     def decorator(func):
         fix_name = name or func.__name__
         FIX_REGISTRY[fix_name] = func
         return func
+
     return decorator
 
+
 # --- fix implementations ---
+
 
 @register_fix("remove")
 def remove_file(path: Path, spec: dict) -> bool:
@@ -63,4 +69,3 @@ def describe_available_fixes():
         doc = (func.__doc__ or "").strip().split("\n")[0]
         lines.append(f"- **{name}** — {doc}")
     return "\n".join(lines)
-
