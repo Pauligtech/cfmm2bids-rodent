@@ -1,0 +1,72 @@
+# general 
+credentials_file: ~/.uwo_credentials.bd
+final_bids_dir: "bids"
+
+# 1. query
+search_specs:
+  - dicom_query:
+      study_description: Prado^*
+      study_date: 20230101-
+    metadata_mappings:
+      subject:
+        source: PatientID
+        pattern: '_([^_]+)$'
+        sanitize: true
+      session:
+        source: StudyDate
+  - dicom_query:
+      study_description: Menon^*
+      study_date: 20230101-
+      patient_name: AppKI2.hTau.*
+    metadata_mappings:
+      subject:
+        source: PatientID
+        pattern: '_([^_]+)$'
+        sanitize: true
+      session:
+        source: StudyDate
+
+
+# 2. filter
+study_filter_specs:
+  include:
+  exclude:
+    - StudyInstanceUID == '2.16.756.5.5.200.8323328.24337.1724894202.13553'
+
+# 3. download
+cfmm2tar_download_options: '--skip-derived'
+
+
+
+# 4. convert
+heudiconv_options: '--minmeta --use-enhanced-dicom --no-sanitize-jsons'
+heuristic: resources/heuristic.py
+dcmconfig_json: resources/dcm2niix_config.json
+
+
+
+# 5. fix 
+post_convert_fixes:
+  - name: remove_fieldmaps
+    pattern: "fmap/*dir-AP*"
+    action: remove
+
+  - name: add_phase_encoding
+    pattern: "func/*bold.json"
+    action: update_json
+    updates:
+      NewPhaseEncodingDirection: "j-"
+
+  - name: reorient_nifti
+    pattern: "anat/*T1w.nii.gz"
+    action: fix_orientation
+
+#intermediate output folders
+stages:
+  query: "results/0_query"
+  filter: "results/1_filter"
+  download: "results/2_download"
+  convert: "results/3_convert"
+  fix: "results/4_fix"
+
+
