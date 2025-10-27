@@ -270,22 +270,22 @@ rule post_convert_fix:
     threads: 1
     resources:
         mem_mb=8000,
-        runtime=10
+        runtime=10,
     script:
         "scripts/post_convert_fix.py"
 
 
 rule dataset_description_for_fix:
     input:
-        stage_convert / 'bids/dataset_description.json'
+        stage_convert / "bids/dataset_description.json",
     output:
         stage_fix / "bids/dataset_description.json",
     log:
-        'logs/fix/dataset_description.log'
+        "logs/fix/dataset_description.log",
     threads: 1
     resources:
         mem_mb=4000,
-        runtime=10
+        runtime=10,
     shell:
         "cp {input} {output} &> {log}"
 
@@ -326,7 +326,7 @@ rule final_bids_subj:
     threads: 1
     resources:
         mem_mb=4000,
-        runtime=10
+        runtime=10,
     log:
         "logs/final_bids_subj/sub-{subject}_ses-{session}.log",
     shell:
@@ -335,14 +335,14 @@ rule final_bids_subj:
 
 rule final_dataset_description:
     input:
-        validator=stage_fix/'qc/bids_validator.json', #require validated
-        dd_json=stage_fix/'bids/dataset_description.json'
+        validator=stage_fix / "qc/bids_validator.json",  #require validated
+        dd_json=stage_fix / "bids/dataset_description.json",
     output:
-        dd_json=final_bids_dir / 'dataset_description.json'
+        dd_json=final_bids_dir / "dataset_description.json",
     threads: 1
     resources:
         mem_mb=4000,
-        runtime=10
+        runtime=10,
     log:
         "logs/dataset_description/final_dataset_description.log",
     shell:

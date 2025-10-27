@@ -1,4 +1,3 @@
-
 # Heudiconv cannot extract correct information from the dcm, it switches dim4 and dim3
 # that's why you have to put dim3 > 30, which is reasonable for functional data (we can go even to 40, just to be sure)
 # the 30 here is the number of slices => does not work
