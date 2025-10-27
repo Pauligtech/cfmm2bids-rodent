@@ -2,7 +2,12 @@
 
 ## Code Quality Tools
 
-This repository uses several tools to maintain code quality and consistency:
+This repository uses several tools to maintain code quality and consistency. All tools are included in the pixi environment.
+
+**Installation**: After cloning the repository, install all dependencies including code quality tools:
+```bash
+pixi install
+```
 
 ### 1. Ruff (Python Linting and Formatting)
 
@@ -12,16 +17,16 @@ Ruff is a fast Python linter and formatter that combines the functionality of mu
 
 **Usage**:
 ```bash
-# Check for linting issues
+# Using pixi (recommended)
+pixi run ruff check .
+pixi run ruff check --fix .
+pixi run ruff format --check .
+pixi run ruff format .
+
+# Or directly if tools are in PATH
 ruff check .
-
-# Automatically fix issues
 ruff check --fix .
-
-# Check formatting
 ruff format --check .
-
-# Apply formatting
 ruff format .
 ```
 
@@ -37,10 +42,12 @@ Snakefmt formats Snakemake files (Snakefile, *.smk) for consistency.
 
 **Usage**:
 ```bash
-# Check formatting
-snakefmt --check --compact-diff .
+# Using pixi (recommended)
+pixi run snakefmt --check --compact-diff .
+pixi run snakefmt .
 
-# Apply formatting
+# Or directly if tools are in PATH
+snakefmt --check --compact-diff .
 snakefmt .
 ```
 
@@ -54,14 +61,14 @@ Pre-commit hooks automatically run checks before commits.
 
 **Setup**:
 ```bash
-# Install pre-commit (if not already installed)
-pip install pre-commit
+# Pre-commit is included in pixi environment
+pixi install
 
 # Install the git hooks
-pre-commit install
+pixi run pre-commit install
 
 # Run manually on all files
-pre-commit run --all-files
+pixi run pre-commit run --all-files
 ```
 
 **Hooks configured**:
@@ -91,19 +98,19 @@ Two GitHub Actions workflows run automatically on push and pull requests:
 1. **Before committing**:
    ```bash
    # Run all pre-commit hooks
-   pre-commit run --all-files
+   pixi run pre-commit run --all-files
    ```
 
 2. **Fix issues automatically**:
    ```bash
    # Fix Python linting issues
-   ruff check --fix .
+   pixi run ruff check --fix .
    
    # Format Python code
-   ruff format .
+   pixi run ruff format .
    
    # Format Snakemake files
-   snakefmt .
+   pixi run snakefmt .
    ```
 
 3. **Commit your changes**:
@@ -142,15 +149,15 @@ When generating or modifying code:
 ## Quick Reference
 
 ```bash
-# Check everything
-ruff check . && ruff format --check . && snakefmt --check .
+# Check everything (using pixi)
+pixi run ruff check . && pixi run ruff format --check . && pixi run snakefmt --check .
 
-# Fix everything
-ruff check --fix . && ruff format . && snakefmt .
+# Fix everything (using pixi)
+pixi run ruff check --fix . && pixi run ruff format . && pixi run snakefmt .
 
 # Pre-commit on all files
-pre-commit run --all-files
+pixi run pre-commit run --all-files
 
 # Update pre-commit hooks
-pre-commit autoupdate
+pixi run pre-commit autoupdate
 ```
