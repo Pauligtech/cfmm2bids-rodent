@@ -14,10 +14,10 @@ A Snakemake workflow for converting CFMM DICOM data to BIDS format using heudico
 
 ## Workflow Stages
 
-The workflow is organized into 5 stages, each producing intermediate outputs:
+The workflow is organized into 5 main processing stages plus a final copy stage, each producing intermediate outputs:
 
 ### 1. Query Stage (`results/0_query`)
-Queries DICOM studies from CFMM using search specifications defined in `config.yml`. Features include:
+Queries DICOM studies from CFMM using search specifications defined in `config/config.yml`. Features include:
 - Multiple search specifications with different query parameters
 - Flexible metadata mapping (e.g., extract subject/session from PatientID, StudyDate)
 - Pattern matching with regex extraction
