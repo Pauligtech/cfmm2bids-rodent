@@ -9,6 +9,7 @@ __pycache__/
 
 # Generated outputs
 bids/
-sourcedata/
+results/
 qc/
 logs/
+.snakemake/

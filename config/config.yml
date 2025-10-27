@@ -1,16 +1,8 @@
+# general 
 credentials_file: ~/.uwo_credentials.bd
-
-#output folders
-stages:
-  query: "results/0_query"
-  filter: "results/1_filter"
-  download: "results/2_download"
-  convert: "results/3_convert"
-  fix: "results/4_fix"
-
 final_bids_dir: "bids"
 
-#query
+# 1. query
 search_specs:
   - dicom_query:
       study_description: Prado^*
@@ -35,25 +27,25 @@ search_specs:
         source: StudyDate
 
 
-# filter
+# 2. filter
 study_filter_specs:
   include:
   exclude:
     - StudyInstanceUID == '2.16.756.5.5.200.8323328.24337.1724894202.13553'
 
-# download
+# 3. download
 cfmm2tar_download_options: '--skip-derived'
 
 
 
-# convert
+# 4. convert
 heudiconv_options: '--minmeta --use-enhanced-dicom --no-sanitize-jsons'
 heuristic: resources/heuristic.py
 dcmconfig_json: resources/dcm2niix_config.json
 
 
 
-# fix 
+# 5. fix 
 post_convert_fixes:
   - name: remove_fieldmaps
     pattern: "fmap/*dir-AP*"
@@ -68,4 +60,13 @@ post_convert_fixes:
   - name: reorient_nifti
     pattern: "anat/*T1w.nii.gz"
     action: fix_orientation
+
+#intermediate output folders
+stages:
+  query: "results/0_query"
+  filter: "results/1_filter"
+  download: "results/2_download"
+  convert: "results/3_convert"
+  fix: "results/4_fix"
+
 

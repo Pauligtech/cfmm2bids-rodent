@@ -14,28 +14,6 @@ stage_fix      = Path(stages.get("fix", "results/4_fix"))
 
 final_bids_dir = Path(config.get("final_bids_dir", "bids"))
 
-"""
-#  0_query
-      tsv
-#  1_filter
-      tsv
-#  2_download
-      dicoms
-#  3_convert
-      heudiconv_info
-      bids
-      qc
-        - bids-validator
-        - heudiconv qc
-#  4_fix
-      bids
-      qc
-        - bids-validator
-        - fixes-applied
-
-# logs/...
-"""
-
 
 # query
 df = query_dicoms(config['search_specs'],
@@ -89,6 +67,34 @@ rule all:
         sub_ses_targets,
         final_bids_dir / 'dataset_description.json',
         qc_report_targets
+
+rule download:
+    input:
+        sub_ses_targets = expand(
+            stage_download / 'dicoms/sub-{subject}/ses-{session}',
+            zip,
+            subject=df.subject,
+            session=df.session
+        )
+
+rule convert:
+    input:
+        sub_ses_targets = expand(
+            stage_convert / 'bids/sub-{subject}/ses-{session}',
+            zip,
+            subject=df.subject,
+            session=df.session
+        )
+
+rule fix:
+    input:
+        sub_ses_targets = expand(
+            stage_fix / 'bids/sub-{subject}/ses-{session}',
+            zip,
+            subject=df.subject,
+            session=df.session
+        )
+
 
 
 def get_uid_from_wildcards(wildcards):

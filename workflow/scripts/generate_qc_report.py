@@ -1,11 +1,9 @@
-#!/usr/bin/env python3
 """
 Generate QC report for heudiconv conversion.
 
 This script reads heudiconv metadata (*.auto.txt, dicominfo.tsv) and generates:
-1. A Gantt-style chart showing all series across acquisition time
-2. A list of series with corresponding BIDS filenames
-3. A summary of unmapped series
+1. A list of series with corresponding BIDS filenames
+2. A summary of unmapped series
 
 Outputs are saved as SVG figures.
 """
@@ -16,12 +14,16 @@ from datetime import datetime, timedelta
 import ast
 from collections import defaultdict
 from snakemake.utils import format
+from lib import utils
 
 
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.dates import DateFormatter, AutoDateLocator
+
+log_file = snakemake.log[0] if snakemake.log else None
+logger = utils.setup_logger(log_file)
 
 
 def parse_auto_txt(auto_txt_path):
@@ -143,7 +145,7 @@ def create_series_list(df, mappings, output_path):
     plt.title('Series List with BIDS Mappings', fontsize=14, fontweight='bold', pad=20)
     plt.savefig(output_path, format='svg', dpi=150, bbox_inches='tight')
     plt.close()
-    print(f"Saved series list to {output_path}")
+    logger.info(f"Saved series list to {output_path}")
 
 
 def create_unmapped_summary(df, mappings, output_path):
@@ -177,7 +179,7 @@ def create_unmapped_summary(df, mappings, output_path):
         plt.title('Unmapped Series Summary', fontsize=14, fontweight='bold', pad=20)
         plt.savefig(output_path, format='svg', dpi=150, bbox_inches='tight')
         plt.close()
-        print(f"Saved unmapped summary to {output_path} (all mapped)")
+        logger.info(f"Saved unmapped summary to {output_path} (all mapped)")
         return
     
     unmapped_df = pd.DataFrame(unmapped_series)
@@ -213,7 +215,7 @@ def create_unmapped_summary(df, mappings, output_path):
     plt.title('Unmapped Series Summary', fontsize=14, fontweight='bold', pad=20)
     plt.savefig(output_path, format='svg', dpi=150, bbox_inches='tight')
     plt.close()
-    print(f"Saved unmapped summary to {output_path}")
+    logger.info(f"Saved unmapped summary to {output_path}")
 
 
 

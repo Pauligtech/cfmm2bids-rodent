@@ -1,21 +1,38 @@
-# scripts/curate_bids.py
 from pathlib import Path
 import shutil, os, json
-from lib import bids_fixes
+from lib import bids_fixes, utils
+import stat
 
-print(bids_fixes.describe_available_fixes())
+log_file = snakemake.log[0] if snakemake.log else None
+logger = utils.setup_logger(log_file)
+
+logger.info(bids_fixes.describe_available_fixes())
 
 src = Path(snakemake.input.bids_subj_dir)
 dst = Path(snakemake.output.bids_subj_dir)
 fixes = snakemake.params.fixes
 
-print(f"Fixing dataset for {src.name} → {dst}")
+logger.info(f"Fixing dataset for {src.name} → {dst}")
 
-try:
-    shutil.copytree(src, dst, copy_function=os.link)
-except Exception:
-    print("Hardlink copy failed; using normal copy.")
-    shutil.copytree(src, dst)
+
+# --- Helper functions ---
+def make_tree_writable(path: Path):
+    """Recursively make files and dirs under `path` writable by owner."""
+    for p in [path] + list(path.rglob("*")):
+        try:
+            mode = p.stat().st_mode
+            p.chmod(mode | stat.S_IWUSR)
+        except Exception as e:
+            logger.info(f"⚠️ Could not make writable: {p} ({e})")
+
+# --- Always do a normal copy ---
+logger.info("📂 Copying source tree...")
+shutil.copytree(src, dst)  # full, independent copy
+
+# --- Make writable before applying fixes ---
+logger.info("🔧 Making copied tree writable...")
+make_tree_writable(dst)
+
 
 num_changes = 0
 for fix in fixes:
@@ -27,17 +44,19 @@ for fix in fixes:
     if handler is None:
         raise ValueError(f"Unknown fix type: {action}")
 
-    print(f"\n=== Applying fix: {name} ({action}) ===")
+    logger.info(f"\n=== Applying fix: {name} ({action}) ===")
     matches = list(dst.rglob(pattern))
     if not matches:
-        print(f"  ⚠️ No matches for pattern: {pattern}")
+        logger.info(f"  ⚠️ No matches for pattern: {pattern}")
         continue
 
     for path in matches:
         if handler(path, fix):
             num_changes += 1
 
-print(f"✅ Done with {src.name}: {num_changes} files modified.")
+logger.info(f"✅ Done with {src.name}: {num_changes} files modified.")
+
+
 
 # Optional lightweight provenance per subject/session
 Path(snakemake.output.prov_json).write_text(json.dumps({
