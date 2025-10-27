@@ -44,33 +44,31 @@ df.to_csv(stage_filter / 'studies_filtered.tsv', sep='\t', index=False)
 
 
 
-
-# Build BIDS-style output targets
-sub_ses_targets = expand(
-    final_bids_dir / 'sub-{subject}/ses-{session}',
-    zip,
-    subject=df.subject,
-    session=df.session
-)
-
-# Build QC report targets
-qc_report_targets = expand(
-    stage_convert / 'qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series.svg',
-    zip,
-    subject=df.subject,
-    session=df.session
-)
-
-
 rule all:
     input: 
-        sub_ses_targets,
+        expand(
+            final_bids_dir / 'sub-{subject}/ses-{session}',
+            zip,
+            subject=df.subject,
+            session=df.session
+        ),
         final_bids_dir / 'dataset_description.json',
-        qc_report_targets
+
+rule head:
+    """ run only on the first subject """
+    input: 
+        expand(
+            final_bids_dir / 'sub-{subject}/ses-{session}',
+            zip,
+            subject=df.head(1).subject,
+            session=df.head(1).session
+        ),
+        final_bids_dir / 'dataset_description.json',
+
 
 rule download:
     input:
-        sub_ses_targets = expand(
+        expand(
             stage_download / 'dicoms/sub-{subject}/ses-{session}',
             zip,
             subject=df.subject,
@@ -79,21 +77,11 @@ rule download:
 
 rule convert:
     input:
-        sub_ses_targets = expand(
-            stage_convert / 'bids/sub-{subject}/ses-{session}',
-            zip,
-            subject=df.subject,
-            session=df.session
-        )
+        validator_json=stage_convert/'qc/bids_validator.json'
 
 rule fix:
     input:
-        sub_ses_targets = expand(
-            stage_fix / 'bids/sub-{subject}/ses-{session}',
-            zip,
-            subject=df.subject,
-            session=df.session
-        )
+        validator_json=stage_fix/'qc/bids_validator.json'
 
 
 
@@ -183,7 +171,7 @@ rule init_dataset_description:
     shell:
         'cp {input} {output} &> {log}'
 
-rule generate_convert_qc:
+rule generate_convert_qc_figs:
     input:
         auto_txt=rules.heudiconv.output.auto_txt,
         dicominfo_tsv=rules.heudiconv.output.dicominfo_tsv,
@@ -192,14 +180,14 @@ rule generate_convert_qc:
         series_list=stage_convert / 'qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series.svg',
         unmapped=stage_convert / 'qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_unmapped.svg'
     log:
-        'logs/generate_convert_qc/sub-{subject}_ses-{session}.log'
+        'logs/generate_convert_qc_figs/sub-{subject}_ses-{session}.log'
     threads: 1
     resources: 
         mem_mb=4000,
         runtime=10
     group: 'convert'
     script:
-        'scripts/generate_qc_report.py'
+        'scripts/generate_convert_qc_figs.py'
 
 rule post_convert_fix:
     """
@@ -246,3 +234,54 @@ rule final_dataset_description:
 
 
 
+rule validate_convert:
+    input:
+        dataset_description=stage_convert/'bids/dataset_description.json',
+        fix_prov_jsons = expand(
+            stage_fix / 'info/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_provenance.json',
+            zip,
+            subject=df.subject,
+            session=df.session
+        )
+    params:
+        bids_dir=stage_convert / 'bids'
+    output:
+        validator_json=stage_convert/'qc/bids_validator.json'
+    threads: 1
+    resources:
+        mem_mb=4000,
+        runtime=10
+    log:
+        'logs/convert/validator.txt'
+    shell:
+        # || true prevents workflow failure when validation errors are found
+        # validate twice, to write to log, to txt, and to json
+        'bids-validator-deno {params.bids_dir} --format text &> {log} && '   
+        'bids-validator-deno {params.bids_dir} --format json_pp -o {output.validator_json} || true'
+
+        
+
+rule validate_fix:
+    input:
+        dataset_description=stage_fix/'bids/dataset_description.json',
+        qc_report_figs = expand(
+            stage_fix / 'qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series.svg',
+            zip,
+            subject=df.subject,
+            session=df.session
+        )
+    params:
+        bids_dir=stage_fix / 'bids'
+    output:
+        validator_json=stage_fix/'qc/bids_validator.json'
+    threads: 1
+    resources:
+        mem_mb=4000,
+        runtime=10
+    log:
+        'logs/fix/validator.txt'
+    shell:
+        # || true prevents workflow failure when validation errors are found
+        # validate twice, to write to log, to txt, and to json
+        'bids-validator-deno {params.bids_dir} --format text &> {log} && '   
+        'bids-validator-deno {params.bids_dir} --format json_pp -o {output.validator_json} || true'
