@@ -1,31 +1,32 @@
 from pathlib import Path
 from lib.query_filter import validate_column, query_dicoms, post_filter
 
-configfile: 'config/config.yml'
+
+configfile: "config/config.yml"
+
 
 # Load stages dict
 stages = config.get("stages", {})
 
-stage_query    = Path(stages.get("query", "results/0_query"))
-stage_filter   = Path(stages.get("filter", "results/1_filter"))
+stage_query = Path(stages.get("query", "results/0_query"))
+stage_filter = Path(stages.get("filter", "results/1_filter"))
 stage_download = Path(stages.get("download", "results/2_download"))
-stage_convert  = Path(stages.get("convert", "results/3_convert"))
-stage_fix      = Path(stages.get("fix", "results/4_fix"))
+stage_convert = Path(stages.get("convert", "results/3_convert"))
+stage_fix = Path(stages.get("fix", "results/4_fix"))
 
 final_bids_dir = Path(config.get("final_bids_dir", "bids"))
 
 
 # query
-df = query_dicoms(config['search_specs'],
-                  credentials_file=config['credentials_file'])
+df = query_dicoms(config["search_specs"], credentials_file=config["credentials_file"])
 
-#save unfiltered list
-stage_query.mkdir(parents=True,exist_ok=True)
-df.to_csv(stage_query / 'studies.tsv',sep='\t',index=False)
+# save unfiltered list
+stage_query.mkdir(parents=True, exist_ok=True)
+df.to_csv(stage_query / "studies.tsv", sep="\t", index=False)
 
 # Validate both columns
-valid_subject = validate_column(df, 'subject')
-valid_session = validate_column(df, 'session')
+valid_subject = validate_column(df, "subject")
+valid_session = validate_column(df, "session")
 
 # Optionally, check if all rows are valid overall
 all_valid = valid_subject & valid_session
@@ -33,69 +34,74 @@ if all_valid.all():
     print("✅ All subject and session ids are valid!")
 else:
     print("⚠️ Some rows have invalid entries:")
-    print(df[['StudyDescription','PatientID','StudyDate','subject','session']][~all_valid])
+    print(
+        df[["StudyDescription", "PatientID", "StudyDate", "subject", "session"]][
+            ~all_valid
+        ]
+    )
 
 
-df = post_filter(df,config['study_filter_specs'])
+df = post_filter(df, config["study_filter_specs"])
 
 
-#use --config head=1  to only process first subject
-head_n = config.get('head',0) 
+# use --config head=1  to only process first subject
+head_n = config.get("head", 0)
 if head_n > 0:
     df = df.head(head_n)
 
 
-#write this out so user can inspect
-stage_filter.mkdir(parents=True,exist_ok=True)
-df.to_csv(stage_filter / 'studies_filtered.tsv', sep='\t', index=False)
-
+# write this out so user can inspect
+stage_filter.mkdir(parents=True, exist_ok=True)
+df.to_csv(stage_filter / "studies_filtered.tsv", sep="\t", index=False)
 
 
 rule all:
-    input: 
+    input:
         expand(
-            final_bids_dir / 'sub-{subject}/ses-{session}',
+            final_bids_dir / "sub-{subject}/ses-{session}",
             zip,
             subject=df.subject,
-            session=df.session
+            session=df.session,
         ),
-        final_bids_dir / 'dataset_description.json',
+        final_bids_dir / "dataset_description.json",
+
 
 rule head:
     """ run only on the first subject """
-    input: 
+    input:
         expand(
-            final_bids_dir / 'sub-{subject}/ses-{session}',
+            final_bids_dir / "sub-{subject}/ses-{session}",
             zip,
             subject=df.head(1).subject,
-            session=df.head(1).session
+            session=df.head(1).session,
         ),
-        final_bids_dir / 'dataset_description.json',
+        final_bids_dir / "dataset_description.json",
 
 
 rule download:
     input:
         expand(
-            stage_download / 'dicoms/sub-{subject}/ses-{session}',
+            stage_download / "dicoms/sub-{subject}/ses-{session}",
             zip,
             subject=df.subject,
-            session=df.session
-        )
+            session=df.session,
+        ),
+
 
 rule convert:
     input:
-        validator_json=stage_convert/'qc/bids_validator.json'
+        validator_json=stage_convert / "qc/bids_validator.json",
+
 
 rule fix:
     input:
-        validator_json=stage_fix/'qc/bids_validator.json'
-
+        validator_json=stage_fix / "qc/bids_validator.json",
 
 
 def get_uid_from_wildcards(wildcards):
     matches = lookup(
         query=f"subject == '{wildcards.subject}' and session == '{wildcards.session}'",
-        within=df
+        within=df,
     )
     if isinstance(matches, tuple):
         return matches.StudyInstanceUID
@@ -105,51 +111,68 @@ def get_uid_from_wildcards(wildcards):
             print(f"WARNING: Merging multiple matches for {wildcards}")
         else:
             bad_ids = "\n".join(ids)
-            raise LookupError(f'Multiple studies matched for {wildcards}: \n{bad_ids}\nThese can be merged instead by using setting in the config "merge_duplicate_studies: true" ')
-
+            raise LookupError(
+                f'Multiple studies matched for {wildcards}: \n{bad_ids}\nThese can be merged instead by using setting in the config "merge_duplicate_studies: true" '
+            )
 
 
 rule cfmm2tar:
     params:
         uid=get_uid_from_wildcards,
-        cfmm2tar_download_options=config['cfmm2tar_download_options'],
-        creds_file=config['credentials_file']
+        cfmm2tar_download_options=config["cfmm2tar_download_options"],
+        creds_file=config["credentials_file"],
     output:
-        dicoms_dir=directory(stage_download / 'dicoms/sub-{subject}/ses-{session}')
+        dicoms_dir=directory(stage_download / "dicoms/sub-{subject}/ses-{session}"),
     log:
-        'logs/download/sub-{subject}_ses-{session}.log'
+        "logs/download/sub-{subject}_ses-{session}.log",
     threads: 1
     resources:
         mem_mb=4000,
-        runtime=15
+        runtime=15,
     shell:
         "cfmm2tar -c {params.creds_file} {params.cfmm2tar_download_options} -u {params.uid} {output.dicoms_dir} &> {log}"
+
 
 rule heudiconv:
     input:
         dicoms_dir=rules.cfmm2tar.output.dicoms_dir,
-        heuristic=config['heuristic'],
-        dcmconfig_json=config['dcmconfig_json'],
-    params: 
-        heudiconv_options=config['heudiconv_options'],
-        in_auto_txt=lambda wildcards: stage_convert /'bids/.heudiconv/{subject}/ses-{session}/info/{subject}_ses-{session}.auto.txt'.format(**wildcards),
-        in_dicominfo_tsv=lambda wildcards: stage_convert / 'bids/.heudiconv/{subject}/ses-{session}/info/dicominfo_ses-{session}.tsv'.format(**wildcards),
-        in_filegroup_json=lambda wildcards: stage_convert / 'bids/.heudiconv/{subject}/ses-{session}/info/filegroup_ses-{session}.json'.format(**wildcards),
-        out_info_dir=lambda wildcards: stage_convert  / 'info/sub-{subject}/ses-{session}'.format(**wildcards),
-        out_bids=stage_convert / 'bids'
+        heuristic=config["heuristic"],
+        dcmconfig_json=config["dcmconfig_json"],
+    params:
+        heudiconv_options=config["heudiconv_options"],
+        in_auto_txt=lambda wildcards: stage_convert
+        / "bids/.heudiconv/{subject}/ses-{session}/info/{subject}_ses-{session}.auto.txt".format(
+            **wildcards
+        ),
+        in_dicominfo_tsv=lambda wildcards: stage_convert
+        / "bids/.heudiconv/{subject}/ses-{session}/info/dicominfo_ses-{session}.tsv".format(
+            **wildcards
+        ),
+        in_filegroup_json=lambda wildcards: stage_convert
+        / "bids/.heudiconv/{subject}/ses-{session}/info/filegroup_ses-{session}.json".format(
+            **wildcards
+        ),
+        out_info_dir=lambda wildcards: stage_convert
+        / "info/sub-{subject}/ses-{session}".format(**wildcards),
+        out_bids=stage_convert / "bids",
     output:
-        bids_subj_dir=directory(stage_convert / 'bids/sub-{subject}/ses-{session}'),
-        auto_txt=stage_convert / 'info/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_auto.txt',
-        dicominfo_tsv=stage_convert / 'info/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_dicominfo.tsv',
-        filegroup_json=stage_convert / 'info/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_filegroup.json'
+        bids_subj_dir=directory(stage_convert / "bids/sub-{subject}/ses-{session}"),
+        auto_txt=stage_convert
+        / "info/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_auto.txt",
+        dicominfo_tsv=stage_convert
+        / "info/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_dicominfo.tsv",
+        filegroup_json=stage_convert
+        / "info/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_filegroup.json",
     log:
-        'logs/heudiconv/sub-{subject}_ses-{session}.log'
-    shadow: 'minimal'
+        "logs/heudiconv/sub-{subject}_ses-{session}.log",
+    shadow:
+        "minimal"
     threads: 16
-    resources: 
+    resources:
         mem_mb=8000,
-        runtime=15
-    group: 'convert'
+        runtime=15,
+    group:
+        "convert"
     shell:
         (
             "heudiconv --files {input.dicoms_dir}"
@@ -168,15 +191,17 @@ rule heudiconv:
             " && cp {params.in_filegroup_json} {output.filegroup_json}"
         )
 
+
 rule dataset_description_for_convert:
     input:
-        'resources/dataset_description.json'
+        "resources/dataset_description.json",
     output:
-        stage_convert / 'bids/dataset_description.json'
+        stage_convert / "bids/dataset_description.json",
     log:
-        'logs/dataset_description/init_dataset_description.log'
+        "logs/dataset_description/init_dataset_description.log",
     shell:
-        'cp {input} {output} &> {log}'
+        "cp {input} {output} &> {log}"
+
 
 rule generate_convert_qc_figs:
     input:
@@ -184,43 +209,47 @@ rule generate_convert_qc_figs:
         dicominfo_tsv=rules.heudiconv.output.dicominfo_tsv,
         filegroup_json=rules.heudiconv.output.filegroup_json,
     output:
-        series_list=stage_convert / 'qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series.svg',
-        unmapped=stage_convert / 'qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_unmapped.svg'
+        series_list=stage_convert
+        / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series.svg",
+        unmapped=stage_convert
+        / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_unmapped.svg",
     log:
-        'logs/generate_convert_qc_figs/sub-{subject}_ses-{session}.log'
-    threads: 1
-    resources: 
-        mem_mb=4000,
-        runtime=10
-    group: 'convert'
-    script:
-        'scripts/generate_convert_qc_figs.py'
-
-rule validate_convert:
-    input:
-        dataset_description=stage_convert/'bids/dataset_description.json',
-        qc_report_figs = expand(
-            stage_fix / 'qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series.svg',
-            zip,
-            subject=df.subject,
-            session=df.session
-        )
-
-    params:
-        bids_dir=stage_convert / 'bids'
-    output:
-        validator_json=stage_convert/'qc/bids_validator.json'
+        "logs/generate_convert_qc_figs/sub-{subject}_ses-{session}.log",
     threads: 1
     resources:
         mem_mb=4000,
-        runtime=10
+        runtime=10,
+    group:
+        "convert"
+    script:
+        "scripts/generate_convert_qc_figs.py"
+
+
+rule validate_convert:
+    input:
+        dataset_description=stage_convert / "bids/dataset_description.json",
+        qc_report_figs=expand(
+            stage_fix
+            / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series.svg",
+            zip,
+            subject=df.subject,
+            session=df.session,
+        ),
+    params:
+        bids_dir=stage_convert / "bids",
+    output:
+        validator_json=stage_convert / "qc/bids_validator.json",
+    threads: 1
+    resources:
+        mem_mb=4000,
+        runtime=10,
     log:
-        'logs/convert/validator.txt'
+        "logs/convert/validator.txt",
     shell:
         # || true prevents workflow failure when validation errors are found
         # validate twice, to write to log, to txt, and to json
-        'bids-validator-deno {params.bids_dir} --format text &> {log} && '   
-        'bids-validator-deno {params.bids_dir} --format json_pp -o {output.validator_json} || true'
+        "bids-validator-deno {params.bids_dir} --format text &> {log} && "
+        "bids-validator-deno {params.bids_dir} --format json_pp -o {output.validator_json} || true"
 
 
 rule post_convert_fix:
@@ -229,92 +258,92 @@ rule post_convert_fix:
     (defined in config['post_bids_fixes']) sequentially.
     """
     input:
-        bids_subj_dir=stage_convert / 'bids/sub-{subject}/ses-{session}'
+        bids_subj_dir=stage_convert / "bids/sub-{subject}/ses-{session}",
     output:
-        bids_subj_dir=directory(stage_fix / 'bids/sub-{subject}/ses-{session}'),
-        prov_json=stage_fix / 'info/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_provenance.json'
+        bids_subj_dir=directory(stage_fix / "bids/sub-{subject}/ses-{session}"),
+        prov_json=stage_fix
+        / "info/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_provenance.json",
     params:
-        fixes=config["post_convert_fixes"]
+        fixes=config["post_convert_fixes"],
     log:
-        'logs/post_convert_fix/sub-{subject}_ses-{session}.log'
+        "logs/post_convert_fix/sub-{subject}_ses-{session}.log",
     threads: 1
     resources:
         mem_mb=8000,
-        runtime=10
+        runtime=10,
     script:
         "scripts/post_convert_fix.py"
 
 
 rule dataset_description_for_fix:
     input:
-        stage_convert / 'bids/dataset_description.json'
+        stage_convert / "bids/dataset_description.json",
     output:
-        stage_fix / 'bids/dataset_description.json'
+        stage_fix / "bids/dataset_description.json",
     log:
-        'logs/fix/dataset_description.log'
+        "logs/fix/dataset_description.log",
     threads: 1
     resources:
         mem_mb=4000,
-        runtime=10
+        runtime=10,
     shell:
-        'cp {input} {output} &> {log}'
+        "cp {input} {output} &> {log}"
 
 
 rule validate_fix:
     input:
-        dataset_description=stage_fix/'bids/dataset_description.json',
-        prov_jsons = expand(
-            stage_fix / 'info/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_provenance.json',
+        dataset_description=stage_fix / "bids/dataset_description.json",
+        prov_jsons=expand(
+            stage_fix
+            / "info/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_provenance.json",
             zip,
             subject=df.subject,
-            session=df.session
-        )
+            session=df.session,
+        ),
     params:
-        bids_dir=stage_fix / 'bids'
+        bids_dir=stage_fix / "bids",
     output:
-        validator_json=stage_fix/'qc/bids_validator.json'
+        validator_json=stage_fix / "qc/bids_validator.json",
     threads: 1
     resources:
         mem_mb=4000,
-        runtime=10
+        runtime=10,
     log:
-        'logs/fix/validator.txt'
+        "logs/fix/validator.txt",
     shell:
         # || true prevents workflow failure when validation errors are found
         # validate twice, to write to log, to txt, and to json
-        'bids-validator-deno {params.bids_dir} --format text &> {log} && '   
-        'bids-validator-deno {params.bids_dir} --format json_pp -o {output.validator_json}'
+        "bids-validator-deno {params.bids_dir} --format text &> {log} && "
+        "bids-validator-deno {params.bids_dir} --format json_pp -o {output.validator_json}"
 
 
 # final_bids_dir
 rule final_bids_subj:
     input:
-        bids_subj_dir=stage_fix / 'bids/sub-{subject}/ses-{session}'
+        bids_subj_dir=stage_fix / "bids/sub-{subject}/ses-{session}",
     output:
-        bids_subj_dir=directory(final_bids_dir / 'sub-{subject}/ses-{session}'),
+        bids_subj_dir=directory(final_bids_dir / "sub-{subject}/ses-{session}"),
     threads: 1
     resources:
         mem_mb=4000,
-        runtime=10
+        runtime=10,
     log:
-        'logs/final_bids_subj/sub-{subject}_ses-{session}.log'
+        "logs/final_bids_subj/sub-{subject}_ses-{session}.log",
     shell:
         "cp -R {input} {output} &> {log}"
 
+
 rule final_dataset_description:
     input:
-        validator=stage_fix/'qc/bids_validator.json', #require validated
-        dd_json=stage_fix/'bids/dataset_description.json'
+        validator=stage_fix / "qc/bids_validator.json",  #require validated
+        dd_json=stage_fix / "bids/dataset_description.json",
     output:
-        dd_json=final_bids_dir / 'dataset_description.json'
+        dd_json=final_bids_dir / "dataset_description.json",
     threads: 1
     resources:
         mem_mb=4000,
-        runtime=10
+        runtime=10,
     log:
-        'logs/dataset_description/final_dataset_description.log'
+        "logs/dataset_description/final_dataset_description.log",
     shell:
-        'cp {input.dd_json} {output.dd_json} &> {log}'
-
-
-
+        "cp {input.dd_json} {output.dd_json} &> {log}"

@@ -1,7 +1,9 @@
-from pathlib import Path
-import shutil, os, json
-from lib import bids_fixes, utils
+import json
+import shutil
 import stat
+from pathlib import Path
+
+from lib import bids_fixes, utils
 
 log_file = snakemake.log[0] if snakemake.log else None
 logger = utils.setup_logger(log_file)
@@ -24,6 +26,7 @@ def make_tree_writable(path: Path):
             p.chmod(mode | stat.S_IWUSR)
         except Exception as e:
             logger.info(f"⚠️ Could not make writable: {p} ({e})")
+
 
 # --- Always do a normal copy ---
 logger.info("📂 Copying source tree...")
@@ -57,14 +60,15 @@ for fix in fixes:
 logger.info(f"✅ Done with {src.name}: {num_changes} files modified.")
 
 
-
 # Optional lightweight provenance per subject/session
-Path(snakemake.output.prov_json).write_text(json.dumps({
-    "subject": snakemake.wildcards.subject,
-    "session": snakemake.wildcards.session,
-    "fixes_used": [f["action"] for f in fixes],
-    "files_modified": num_changes,
-}, indent=2))
-
-
-
+Path(snakemake.output.prov_json).write_text(
+    json.dumps(
+        {
+            "subject": snakemake.wildcards.subject,
+            "session": snakemake.wildcards.session,
+            "fixes_used": [f["action"] for f in fixes],
+            "files_modified": num_changes,
+        },
+        indent=2,
+    )
+)
