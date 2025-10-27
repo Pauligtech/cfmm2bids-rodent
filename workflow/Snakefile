@@ -38,6 +38,13 @@ else:
 
 df = post_filter(df,config['study_filter_specs'])
 
+
+#use --config head=1  to only process first subject
+head_n = config.get('head',0) 
+if head_n > 0:
+    df = df.head(head_n)
+
+
 #write this out so user can inspect
 stage_filter.mkdir(parents=True,exist_ok=True)
 df.to_csv(stage_filter / 'studies_filtered.tsv', sep='\t', index=False)
@@ -165,7 +172,7 @@ rule init_dataset_description:
     input:
         'resources/dataset_description.json'
     output:
-        stage_convert / 'dataset_description.json'
+        stage_convert / 'bids/dataset_description.json'
     log:
         'logs/dataset_description/init_dataset_description.log'
     shell:
@@ -189,6 +196,33 @@ rule generate_convert_qc_figs:
     script:
         'scripts/generate_convert_qc_figs.py'
 
+rule validate_convert:
+    input:
+        dataset_description=stage_convert/'bids/dataset_description.json',
+        qc_report_figs = expand(
+            stage_fix / 'qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series.svg',
+            zip,
+            subject=df.subject,
+            session=df.session
+        )
+
+    params:
+        bids_dir=stage_convert / 'bids'
+    output:
+        validator_json=stage_convert/'qc/bids_validator.json'
+    threads: 1
+    resources:
+        mem_mb=4000,
+        runtime=10
+    log:
+        'logs/convert/validator.txt'
+    shell:
+        # || true prevents workflow failure when validation errors are found
+        # validate twice, to write to log, to txt, and to json
+        'bids-validator-deno {params.bids_dir} --format text &> {log} && '   
+        'bids-validator-deno {params.bids_dir} --format json_pp -o {output.validator_json} || true'
+
+
 rule post_convert_fix:
     """
     Copy BIDS dataset and apply post-conversion fixes
@@ -209,63 +243,23 @@ rule post_convert_fix:
     script:
         "scripts/post_convert_fix.py"
 
-rule final_bids_subj:
-    input:
-        bids_subj_dir=stage_fix / 'bids/sub-{subject}/ses-{session}'
-    output:
-        bids_subj_dir=directory(final_bids_dir / 'sub-{subject}/ses-{session}'),
-    threads: 1
-    resources:
-        mem_mb=8000
-    log:
-        'logs/final_bids_subj/sub-{subject}_ses-{session}.log'
-    shell:
-        "cp -R {input} {output} &> {log}"
 
-rule final_dataset_description:
+rule fix_dataset_description:
     input:
         'resources/dataset_description.json'
     output:
-        final_bids_dir / 'dataset_description.json'
+        stage_fix / 'bids/dataset_description.json'
     log:
-        'logs/dataset_description/final_dataset_description.log'
+        'logs/fix/dataset_description.log'
     shell:
         'cp {input} {output} &> {log}'
 
 
-
-rule validate_convert:
-    input:
-        dataset_description=stage_convert/'bids/dataset_description.json',
-        fix_prov_jsons = expand(
-            stage_fix / 'info/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_provenance.json',
-            zip,
-            subject=df.subject,
-            session=df.session
-        )
-    params:
-        bids_dir=stage_convert / 'bids'
-    output:
-        validator_json=stage_convert/'qc/bids_validator.json'
-    threads: 1
-    resources:
-        mem_mb=4000,
-        runtime=10
-    log:
-        'logs/convert/validator.txt'
-    shell:
-        # || true prevents workflow failure when validation errors are found
-        # validate twice, to write to log, to txt, and to json
-        'bids-validator-deno {params.bids_dir} --format text &> {log} && '   
-        'bids-validator-deno {params.bids_dir} --format json_pp -o {output.validator_json} || true'
-
-        
-
 rule validate_fix:
     input:
         dataset_description=stage_fix/'bids/dataset_description.json',
-        qc_report_figs = expand(
-            stage_fix / 'qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series.svg',
+        prov_jsons = expand(
+            stage_fix / 'info/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_provenance.json',
             zip,
             subject=df.subject,
             session=df.session
@@ -284,4 +278,33 @@ rule validate_fix:
         # || true prevents workflow failure when validation errors are found
         # validate twice, to write to log, to txt, and to json
         'bids-validator-deno {params.bids_dir} --format text &> {log} && '   
-        'bids-validator-deno {params.bids_dir} --format json_pp -o {output.validator_json} || true'
+        'bids-validator-deno {params.bids_dir} --format json_pp -o {output.validator_json}'
+
+
+# final_bids_dir
+rule final_bids_subj:
+    input:
+        bids_subj_dir=stage_fix / 'bids/sub-{subject}/ses-{session}'
+    output:
+        bids_subj_dir=directory(final_bids_dir / 'sub-{subject}/ses-{session}'),
+    threads: 1
+    resources:
+        mem_mb=8000
+    log:
+        'logs/final_bids_subj/sub-{subject}_ses-{session}.log'
+    shell:
+        "cp -R {input} {output} &> {log}"
+
+rule final_dataset_description:
+    input:
+        validator=stage_fix/'qc/bids_validator.json', #require validated
+        dd_json='resources/dataset_description.json'
+    output:
+        dd_json=final_bids_dir / 'dataset_description.json'
+    log:
+        'logs/dataset_description/final_dataset_description.log'
+    shell:
+        'cp {input.dd_json} {output.dd_json} &> {log}'
+
+
+
