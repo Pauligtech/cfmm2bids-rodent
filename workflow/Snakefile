@@ -29,10 +29,10 @@ valid_subject = validate_column(df, "subject")
 valid_session = validate_column(df, "session")
 
 # Optionally, check if all rows are valid overall
-#all_valid = valid_subject & valid_session
-#if all_valid.all():
+# all_valid = valid_subject & valid_session
+# if all_valid.all():
 #    print("✅ All subject and session ids are valid!")
-#else:
+# else:
 #    print("⚠️ Some rows have invalid entries:")
 #    print(
 #        df[["StudyDescription", "PatientID", "StudyDate", "subject", "session"]][
@@ -45,12 +45,12 @@ df = post_filter(df, config["study_filter_specs"])
 
 
 # use --config subject= to process particular subject
-if config.get("subject",False):
-    df = df[df.subject == config['subject']]
+if config.get("subject", False):
+    df = df[df.subject == config["subject"]]
 
 # use --config subject= to process particular subject
-if config.get("session",False):
-    df = df[df.session == config['session']]
+if config.get("session", False):
+    df = df[df.session == config["session"]]
 
 # use --config head=1  to only process first subject
 head_n = config.get("head", 0)
@@ -93,17 +93,18 @@ rule fix:
     input:
         validator_json=stage_fix / "qc/bids_validator.json",
 
+
 rule qc:
     input:
-        expand(stage_convert
-        / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series.svg",
-               zip,
+        expand(
+            stage_convert
+            / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series.svg",
+            zip,
             subject=df.subject,
             session=df.session,
-        )
+        ),
 
 
-       
 def get_uid_from_wildcards(wildcards):
     matches = lookup(
         query=f"subject == '{wildcards.subject}' and session == '{wildcards.session}'",
@@ -234,7 +235,8 @@ rule generate_convert_qc_figs:
 rule validate_converted:
     input:
         dataset_description=stage_convert / "bids/dataset_description.json",
-        bids_subj_dirs=expand(stage_convert / "bids/sub-{subject}/ses-{session}",
+        bids_subj_dirs=expand(
+            stage_convert / "bids/sub-{subject}/ses-{session}",
             zip,
             subject=df.subject,
             session=df.session,
@@ -298,7 +300,8 @@ rule dataset_description_fixed:
 rule validate_fixed:
     input:
         dataset_description=stage_fix / "bids/dataset_description.json",
-        bids_subj_dirs=expand(stage_fix / "bids/sub-{subject}/ses-{session}",
+        bids_subj_dirs=expand(
+            stage_fix / "bids/sub-{subject}/ses-{session}",
             zip,
             subject=df.subject,
             session=df.session,
