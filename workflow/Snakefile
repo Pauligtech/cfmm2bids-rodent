@@ -218,6 +218,8 @@ rule generate_convert_qc_figs:
     output:
         series_list=stage_convert
         / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series.svg",
+        series_tsv=stage_convert
+        / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series.tsv",
         unmapped=stage_convert
         / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_unmapped.svg",
     log:

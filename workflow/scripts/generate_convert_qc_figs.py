@@ -70,7 +70,7 @@ def load_dicominfo(dicominfo_path):
     return df
 
 
-def create_series_list(df, mappings, output_path):
+def create_series_list(df, mappings, output_path, tsv_output_path=None):
     """
     Create a table showing series with BIDS filenames.
 
@@ -78,6 +78,7 @@ def create_series_list(df, mappings, output_path):
         df: DataFrame with DICOM info
         mappings: dict mapping series_id to BIDS path
         output_path: Path to save the SVG figure
+        tsv_output_path: Optional path to save the data as TSV
     """
     # Create summary DataFrame
     summary_data = []
@@ -98,6 +99,11 @@ def create_series_list(df, mappings, output_path):
         )
 
     summary_df = pd.DataFrame(summary_data)
+
+    # Save as TSV if path provided
+    if tsv_output_path:
+        summary_df.to_csv(tsv_output_path, sep="\t", index=False)
+        logger.info(f"Saved series data to {tsv_output_path}")
 
     # Create figure with table
     fig, ax = plt.subplots(figsize=(16, max(6, len(summary_df) * 0.3)))
@@ -236,7 +242,8 @@ mappings = parse_auto_txt(auto_txt_path)
 df = load_dicominfo(dicominfo_path)
 
 series_list_output = snakemake.output.series_list
-create_series_list(df, mappings, series_list_output)
+series_tsv_output = snakemake.output.series_tsv
+create_series_list(df, mappings, series_list_output, series_tsv_output)
 
 unmapped_output = snakemake.output.unmapped
 create_unmapped_summary(df, mappings, unmapped_output)
