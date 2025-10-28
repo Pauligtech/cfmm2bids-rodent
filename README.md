@@ -171,6 +171,11 @@ post_convert_fixes:
    - `config/config_cogms.yml` - CogMS study setup
    
    You can use these as starting points or use the template in `config/config.yaml`.
+   
+   To use one of the example configs directly:
+   ```bash
+   pixi run snakemake --configfile config/config_trident15T.yml --dry-run
+   ```
 
 5. Run the workflow as a dry-run to see what will be executed:
    ```bash
