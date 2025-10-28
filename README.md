@@ -17,7 +17,7 @@ A Snakemake workflow for converting CFMM DICOM data to BIDS format using heudico
 The workflow is organized into 5 main processing stages plus a final copy stage, each producing intermediate outputs:
 
 ### 1. Query Stage (`results/0_query`)
-Queries DICOM studies from CFMM using search specifications defined in `config/config.yml`. Features include:
+Queries DICOM studies from CFMM using search specifications defined in `config/config.yaml`. Features include:
 - Multiple search specifications with different query parameters
 - Flexible metadata mapping (e.g., extract subject/session from PatientID, StudyDate)
 - Pattern matching with regex extraction
@@ -84,7 +84,11 @@ QC reports are saved in the convert stage: `results/3_convert/qc/sub-{subject}/s
 
 ## Configuration
 
-The workflow is configured via `config/config.yml`. Key configuration sections include:
+The workflow is configured via `config/config.yaml`. Key configuration sections include:
+
+For working examples, see:
+- `config/config_trident15T.yml` - Configuration for Trident 15T scanner
+- `config/config_cogms.yml` - Configuration for CogMS study
 
 ### Query Configuration (`search_specs`)
 Define one or more DICOM queries with metadata mappings:
@@ -160,7 +164,13 @@ post_convert_fixes:
    ```bash
    pixi install
    ```
-4. Configure your search specifications by editing the `config/config.yml`
+4. Configure your search specifications by editing the `config/config.yaml`
+   
+   **Note:** Example configurations are available:
+   - `config/config_trident15T.yml` - Trident 15T scanner setup
+   - `config/config_cogms.yml` - CogMS study setup
+   
+   You can use these as starting points or use the template in `config/config.yaml`.
 
 5. Run the workflow as a dry-run to see what will be executed:
    ```bash
@@ -257,7 +267,9 @@ results/
 │   ├── dcm2niix_config.json   # dcm2niix configuration
 │   └── dataset_description.json  # BIDS dataset metadata template
 ├── config/                     # Configuration files
-│   └── config.yml             # Main workflow configuration
+│   ├── config.yaml            # Configuration template (customize this)
+│   ├── config_trident15T.yml  # Example: Trident 15T scanner configuration
+│   └── config_cogms.yml       # Example: CogMS study configuration
 └── pixi.toml                  # Pixi project configuration and dependencies
 ```
 
