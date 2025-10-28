@@ -29,20 +29,28 @@ valid_subject = validate_column(df, "subject")
 valid_session = validate_column(df, "session")
 
 # Optionally, check if all rows are valid overall
-all_valid = valid_subject & valid_session
-if all_valid.all():
-    print("✅ All subject and session ids are valid!")
-else:
-    print("⚠️ Some rows have invalid entries:")
-    print(
-        df[["StudyDescription", "PatientID", "StudyDate", "subject", "session"]][
-            ~all_valid
-        ]
-    )
+#all_valid = valid_subject & valid_session
+#if all_valid.all():
+#    print("✅ All subject and session ids are valid!")
+#else:
+#    print("⚠️ Some rows have invalid entries:")
+#    print(
+#        df[["StudyDescription", "PatientID", "StudyDate", "subject", "session"]][
+#            ~all_valid
+#        ]
+#    )
 
 
 df = post_filter(df, config["study_filter_specs"])
 
+
+# use --config subject= to process particular subject
+if config.get("subject",False):
+    df = df[df.subject == config['subject']]
+
+# use --config subject= to process particular subject
+if config.get("session",False):
+    df = df[df.session == config['session']]
 
 # use --config head=1  to only process first subject
 head_n = config.get("head", 0)
@@ -66,18 +74,6 @@ rule all:
         final_bids_dir / "dataset_description.json",
 
 
-rule head:
-    """ run only on the first subject """
-    input:
-        expand(
-            final_bids_dir / "sub-{subject}/ses-{session}",
-            zip,
-            subject=df.head(1).subject,
-            session=df.head(1).session,
-        ),
-        final_bids_dir / "dataset_description.json",
-
-
 rule download:
     input:
         expand(
@@ -97,7 +93,17 @@ rule fix:
     input:
         validator_json=stage_fix / "qc/bids_validator.json",
 
+rule qc:
+    input:
+        expand(stage_convert
+        / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series.svg",
+               zip,
+            subject=df.subject,
+            session=df.session,
+        )
 
+
+       
 def get_uid_from_wildcards(wildcards):
     matches = lookup(
         query=f"subject == '{wildcards.subject}' and session == '{wildcards.session}'",
@@ -225,12 +231,10 @@ rule generate_convert_qc_figs:
         "scripts/generate_convert_qc_figs.py"
 
 
-rule validate_convert:
+rule validate_converted:
     input:
         dataset_description=stage_convert / "bids/dataset_description.json",
-        qc_report_figs=expand(
-            stage_fix
-            / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series.svg",
+        bids_subj_dirs=expand(stage_convert / "bids/sub-{subject}/ses-{session}",
             zip,
             subject=df.subject,
             session=df.session,
@@ -248,7 +252,7 @@ rule validate_convert:
     shell:
         # || true prevents workflow failure when validation errors are found
         # validate twice, to write to log, to txt, and to json
-        "bids-validator-deno {params.bids_dir} --format text &> {log} && "
+        "bids-validator-deno {params.bids_dir} --format text &> {log} || true && "
         "bids-validator-deno {params.bids_dir} --format json_pp -o {output.validator_json} || true"
 
 
@@ -259,6 +263,7 @@ rule post_convert_fix:
     """
     input:
         bids_subj_dir=stage_convert / "bids/sub-{subject}/ses-{session}",
+        validator_json=stage_convert / "qc/bids_validator.json",
     output:
         bids_subj_dir=directory(stage_fix / "bids/sub-{subject}/ses-{session}"),
         prov_json=stage_fix
@@ -275,11 +280,11 @@ rule post_convert_fix:
         "scripts/post_convert_fix.py"
 
 
-rule dataset_description_for_fix:
+rule dataset_description_fixed:
     input:
-        stage_convert / "bids/dataset_description.json",
+        dd_json=stage_convert / "bids/dataset_description.json",
     output:
-        stage_fix / "bids/dataset_description.json",
+        dd_json=stage_fix / "bids/dataset_description.json",
     log:
         "logs/fix/dataset_description.log",
     threads: 1
@@ -287,15 +292,13 @@ rule dataset_description_for_fix:
         mem_mb=4000,
         runtime=10,
     shell:
-        "cp {input} {output} &> {log}"
+        "cp {input.dd_json} {output.dd_json} &> {log}"
 
 
-rule validate_fix:
+rule validate_fixed:
     input:
         dataset_description=stage_fix / "bids/dataset_description.json",
-        prov_jsons=expand(
-            stage_fix
-            / "info/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_provenance.json",
+        bids_subj_dirs=expand(stage_fix / "bids/sub-{subject}/ses-{session}",
             zip,
             subject=df.subject,
             session=df.session,
@@ -320,6 +323,7 @@ rule validate_fix:
 # final_bids_dir
 rule final_bids_subj:
     input:
+        validator=stage_fix / "qc/bids_validator.json",  #require validated
         bids_subj_dir=stage_fix / "bids/sub-{subject}/ses-{session}",
     output:
         bids_subj_dir=directory(final_bids_dir / "sub-{subject}/ses-{session}"),
@@ -330,7 +334,7 @@ rule final_bids_subj:
     log:
         "logs/final_bids_subj/sub-{subject}_ses-{session}.log",
     shell:
-        "cp -R {input} {output} &> {log}"
+        "cp -R {input.bids_subj_dir} {output.bids_subj_dir} &> {log}"
 
 
 rule final_dataset_description:

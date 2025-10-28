@@ -48,19 +48,20 @@ dcmconfig_json: resources/dcm2niix_config.json
 
 # 5. fix 
 post_convert_fixes:
-  - name: remove_fieldmaps
-    pattern: "fmap/*dir-AP*"
-    action: remove
-
-  - name: add_phase_encoding
-    pattern: "func/*bold.json"
+  - name: phase_units
+    pattern: "*/*_part-phase_*.json"
     action: update_json
     updates:
-      NewPhaseEncodingDirection: "j-"
+      Units: rad
 
-  - name: reorient_nifti
-    pattern: "anat/*T1w.nii.gz"
-    action: fix_orientation
+#  - name: fix_orientation
+#    pattern: "*/*.nii.gz"
+#    action: fix_orientation
+
+
+#  - name: reset_orientation
+#    pattern: "*/*.nii.gz"
+#    action: reset_orientation
 
 #intermediate output folders
 stages:
