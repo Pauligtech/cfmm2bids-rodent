@@ -41,7 +41,9 @@ valid_session = validate_column(df, "session")
 #    )
 
 
-df = post_filter(df, config["study_filter_specs"]).sort_values(by=['subject','session'])
+df = post_filter(df, config["study_filter_specs"]).sort_values(
+    by=["subject", "session"]
+)
 
 
 # use --config subject= to process particular subject
