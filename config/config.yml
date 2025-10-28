@@ -35,7 +35,7 @@ search_specs:
   - dicom_query:
       # Study description pattern (supports wildcards with *)
       # Example: "MyStudy^*" matches studies starting with "MyStudy^"
-      study_description: YourStudy^*
+      study_description: Khan^*
       
       # Study date range (format: YYYYMMDD or YYYYMMDD-YYYYMMDD)
       # Examples:
@@ -66,7 +66,7 @@ search_specs:
         # Examples:
         #   '_([^_]+)$'                    extracts last part after underscore
         #   '[sS][fF][cC][-_]?([0-9]+)'   extracts numeric ID from SFC-123 format
-        pattern: '_([^_]+)$'
+        pattern: '[sS][uU][bB][-_]([a-zA-Z0-9]+)'
         
         # Remove non-alphanumeric characters (OPTIONAL, default: false)
         # Ensures subject IDs are BIDS-compliant (alphanumeric only)
@@ -176,7 +176,7 @@ merge_duplicate_studies: false
 # Examples:
 #   heuristics/trident_15T.py
 #   heuristics/Menon_CogMSv2.py
-heuristic: heuristics/your_heuristic.py
+heuristic: heuristics/cfmm_base.py
 
 # Path to dcm2niix configuration file (REQUIRED)
 # Contains dcm2niix settings for DICOM to NIfTI conversion
