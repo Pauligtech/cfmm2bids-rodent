@@ -2,10 +2,10 @@
 Generate QC report for heudiconv conversion.
 
 This script reads heudiconv metadata (*.auto.txt, dicominfo.tsv) and generates:
-1. A list of series with corresponding BIDS filenames
+1. A list of series with corresponding BIDS filenames (as SVG and TSV)
 2. A summary of unmapped series
 
-Outputs are saved as SVG figures.
+Outputs are saved as SVG figures and TSV data files.
 """
 
 import ast
