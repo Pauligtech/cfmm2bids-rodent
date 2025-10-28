@@ -142,6 +142,42 @@ study_filter_specs:
   #   - "subject.str.contains('test')"        # Exclude subjects with 'test' in ID
   exclude:
     # - StudyInstanceUID == '2.16.756.5.5.200.8323328.24337.1724894202.13553'
+  
+  # Remap sessions based on study date ordering (OPTIONAL)
+  # This feature automatically remaps session IDs to time-based labels
+  # based on the temporal ordering of study dates for each subject.
+  # Useful for longitudinal studies where you want consistent session labels
+  # like 'baseline', '6mo', '12mo' instead of arbitrary date strings.
+  remap_sessions_by_date:
+    # Enable/disable session remapping (REQUIRED if section is present)
+    enable: false
+    
+    # Column names (OPTIONAL, defaults shown)
+    # subject_col: 'subject'
+    # session_col: 'session'
+    
+    # Format of session dates if stored as strings (OPTIONAL, default: '%Y%m%d')
+    # session_format: '%Y%m%d'
+    
+    # Time units for intervals (OPTIONAL, default: 'months')
+    # Options: 'days', 'months', 'years'
+    # units: 'months'
+    
+    # Rounding step for time intervals (OPTIONAL, default: 6)
+    # For example, with units='months' and round_step=6:
+    #   - 0-3 months → baseline (0)
+    #   - 3-9 months → 6 months (6)
+    #   - 9-15 months → 12 months (12)
+    # round_step: 6
+    
+    # Mapping from numeric time intervals to session labels (OPTIONAL)
+    # If not specified, uses 'baseline' for 0 and generates labels like '6m', '12m'
+    # time_to_label:
+    #   0: 'baseline'
+    #   6: '6mo'
+    #   12: '12mo'
+    #   18: '18mo'
+    #   24: '24mo'
 
 
 # ============================================================================
