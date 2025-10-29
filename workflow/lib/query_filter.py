@@ -36,7 +36,11 @@ def query_dicoms(search_specs, **query_metadata_kwargs):
         for target, mapping in mappings.items():
             source_col = mapping["source"]
             series = df_[source_col]
-
+            
+            # Optional remapping of specific values
+            if "premap" in mapping:
+                series = series.replace(mapping["premap"])
+                
             # Optional regex extraction
             if "pattern" in mapping:
                 series = series.str.extract(mapping["pattern"], expand=False)
