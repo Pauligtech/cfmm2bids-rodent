@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from cfmm2tar import query_metadata
 
@@ -68,6 +69,94 @@ def query_dicoms(search_specs, **query_metadata_kwargs):
     return df
 
 
+def remap_sessions_by_date(
+    df,
+    subject_col="subject",
+    session_col="session",
+    session_format="%Y%m%d",
+    units="months",
+    round_step=6,
+    time_to_label=None,
+):
+    """
+    Remap session IDs based on study date ordering with time intervals.
+
+    This function takes a dataframe with subject and session columns, computes
+    time differences from baseline (first session per subject), rounds them to
+    specified intervals, and remaps the session column to meaningful labels.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Must include subject_col and session_col columns.
+    subject_col : str, default='subject'
+        Name of subject identifier column.
+    session_col : str, default='session'
+        Name of session/date column (string or datetime).
+    session_format : str, default='%Y%m%d'
+        Format of session column if string (e.g. '%Y%m%d').
+    units : {'days', 'months', 'years'}, default='months'
+        Units for time difference calculation.
+    round_step : float, default=6
+        Step size for rounding (e.g. 6 for 6 months).
+    time_to_label : dict, optional
+        Mapping from numeric rounded time (e.g. 0, 6, 12) to label
+        (e.g. 'baseline', '6mo', '12mo'). If None, uses default mapping
+        with baseline at 0 and other values as numeric labels.
+
+    Returns
+    -------
+    pd.DataFrame
+        Original dataframe with session column remapped to time-based labels.
+    """
+    df = df.copy()
+
+    # Convert session col to datetime if needed
+    if not np.issubdtype(df[session_col].dtype, np.datetime64):
+        session_date = pd.to_datetime(df[session_col], format=session_format)
+    else:
+        session_date = df[session_col]
+
+    # Create temporary dataframe with original index preserved
+    temp_df = pd.DataFrame(
+        {subject_col: df[subject_col], "session_date": session_date}, index=df.index
+    )
+
+    # Sort by subject and date
+    temp_df = temp_df.sort_values([subject_col, "session_date"])
+
+    # Compute difference in days from first session per subject
+    diff_days = (
+        temp_df["session_date"]
+        - temp_df.groupby(subject_col)["session_date"].transform("first")
+    ).dt.days
+
+    # Convert to desired units
+    if units == "days":
+        time_diff = diff_days
+    elif units == "months":
+        time_diff = diff_days / 30.44
+    elif units == "years":
+        time_diff = diff_days / 365.25
+    else:
+        raise ValueError("units must be one of {'days', 'months', 'years'}")
+
+    # Round to nearest increment
+    time_rounded = (np.round(time_diff / round_step) * round_step).astype(float)
+
+    # Apply label mapping
+    if time_to_label is None:
+        time_to_label = {0: "baseline"}  # default minimal mapping
+    time_label = time_rounded.map(time_to_label).fillna(
+        time_rounded.astype(int).astype(str) + units[0]
+    )
+
+    # Remap the session column in the original dataframe
+    df[session_col] = time_label
+
+    return df
+
+
 def post_filter(df, post_filter_specs):
     if not post_filter_specs:
         return df
@@ -77,5 +166,18 @@ def post_filter(df, post_filter_specs):
 
     for q in post_filter_specs.get("exclude") or []:
         df = df.query(f"not ({q})")
+
+    # Apply session remapping if configured
+    remap_config = post_filter_specs.get("remap_sessions_by_date")
+    if remap_config and remap_config.get("enable", False):
+        df = remap_sessions_by_date(
+            df,
+            subject_col=remap_config.get("subject_col", "subject"),
+            session_col=remap_config.get("session_col", "session"),
+            session_format=remap_config.get("session_format", "%Y%m%d"),
+            units=remap_config.get("units", "months"),
+            round_step=remap_config.get("round_step", 6),
+            time_to_label=remap_config.get("time_to_label"),
+        )
 
     return df
