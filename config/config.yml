@@ -60,6 +60,13 @@ search_specs:
         # DICOM field to extract from
         # Common options: PatientID, PatientName, StudyDescription
         source: PatientID
+
+        # Pre-map extracted values to new values (OPTIONAL)
+        # Example: map  to session numbers
+        # map:
+        #   194.4193.34.2.1.441.1: Sub-001
+        #   Subj04: Subj003 #e.g. if incorrect ID used
+      
         
         # Regex pattern to extract subject ID (OPTIONAL)
         # Use capture group () to extract the desired part
@@ -78,8 +85,8 @@ search_specs:
         # Map extracted values to new values (OPTIONAL)
         # Example: map visit names to session numbers
         # map:
-        #   SUbj001: Subj001
-        #   Subj04: Subj003 #e.g. if incorrect ID used
+        #   01: 001
+        #   04: 003 #e.g. if incorrect ID used
       
       # Session ID extraction (REQUIRED)
       session:
