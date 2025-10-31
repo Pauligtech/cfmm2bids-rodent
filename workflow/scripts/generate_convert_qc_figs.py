@@ -88,13 +88,13 @@ def create_series_list(df, mappings, output_path, tsv_output_path=None):
 
         summary_data.append(
             {
-                "Series ID": series_id,
-                "Series Description": row["series_description"],
-                "Protocol Name": row["protocol_name"],
-                "Dimensions": f"{row['dim1']}×{row['dim2']}×{row['dim3']}×{row['dim4']}",
-                "TR (ms)": row["TR"],
-                "TE (ms)": row["TE"],
-                "BIDS Path": bids_path,
+                "series_id": series_id,
+                "series_description": row["series_description"],
+                "protocol_name": row["protocol_name"],
+                "dimensions": f"{row['dim1']}×{row['dim2']}×{row['dim3']}×{row['dim4']}",
+                "tr_ms": row["TR"],
+                "te_ms": row["TE"],
+                "bids_path": bids_path,
             }
         )
 
@@ -131,7 +131,7 @@ def create_series_list(df, mappings, output_path, tsv_output_path=None):
 
     # Color unmapped rows
     for i in range(len(summary_df)):
-        if summary_df.iloc[i]["BIDS Path"] == "NOT MAPPED":
+        if summary_df.iloc[i]["bids_path"] == "NOT MAPPED":
             for j in range(len(summary_df.columns)):
                 cell = table[(i + 1, j)]
                 cell.set_facecolor("#FFE5E5")
@@ -158,10 +158,10 @@ def create_unmapped_summary(df, mappings, output_path):
         if series_id not in mappings:
             unmapped_series.append(
                 {
-                    "Series ID": series_id,
-                    "Series Description": row["series_description"],
-                    "Protocol Name": row["protocol_name"],
-                    "Files": row["series_files"],
+                    "series_id": series_id,
+                    "series_description": row["series_description"],
+                    "protocol_name": row["protocol_name"],
+                    "files": row["series_files"],
                 }
             )
 
