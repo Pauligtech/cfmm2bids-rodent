@@ -2,10 +2,10 @@
 Generate QC report for heudiconv conversion.
 
 This script reads heudiconv metadata (*.auto.txt, dicominfo.tsv) and generates:
-1. A list of series with corresponding BIDS filenames
+1. A list of series with corresponding BIDS filenames (as SVG and TSV)
 2. A summary of unmapped series
 
-Outputs are saved as SVG figures.
+Outputs are saved as SVG figures and TSV data files.
 """
 
 import ast
@@ -70,7 +70,7 @@ def load_dicominfo(dicominfo_path):
     return df
 
 
-def create_series_list(df, mappings, output_path):
+def create_series_list(df, mappings, output_path, tsv_output_path=None):
     """
     Create a table showing series with BIDS filenames.
 
@@ -78,6 +78,7 @@ def create_series_list(df, mappings, output_path):
         df: DataFrame with DICOM info
         mappings: dict mapping series_id to BIDS path
         output_path: Path to save the SVG figure
+        tsv_output_path: Optional path to save the data as TSV
     """
     # Create summary DataFrame
     summary_data = []
@@ -87,17 +88,22 @@ def create_series_list(df, mappings, output_path):
 
         summary_data.append(
             {
-                "Series ID": series_id,
-                "Series Description": row["series_description"],
-                "Protocol Name": row["protocol_name"],
-                "Dimensions": f"{row['dim1']}×{row['dim2']}×{row['dim3']}×{row['dim4']}",
-                "TR (ms)": row["TR"],
-                "TE (ms)": row["TE"],
-                "BIDS Path": bids_path,
+                "series_id": series_id,
+                "series_description": row["series_description"],
+                "protocol_name": row["protocol_name"],
+                "dimensions": f"{row['dim1']}×{row['dim2']}×{row['dim3']}×{row['dim4']}",
+                "tr_ms": row["TR"],
+                "te_ms": row["TE"],
+                "bids_path": bids_path,
             }
         )
 
     summary_df = pd.DataFrame(summary_data)
+
+    # Save as TSV if path provided
+    if tsv_output_path:
+        summary_df.to_csv(tsv_output_path, sep="\t", index=False)
+        logger.info(f"Saved series data to {tsv_output_path}")
 
     # Create figure with table
     fig, ax = plt.subplots(figsize=(16, max(6, len(summary_df) * 0.3)))
@@ -125,7 +131,7 @@ def create_series_list(df, mappings, output_path):
 
     # Color unmapped rows
     for i in range(len(summary_df)):
-        if summary_df.iloc[i]["BIDS Path"] == "NOT MAPPED":
+        if summary_df.iloc[i]["bids_path"] == "NOT MAPPED":
             for j in range(len(summary_df.columns)):
                 cell = table[(i + 1, j)]
                 cell.set_facecolor("#FFE5E5")
@@ -152,10 +158,10 @@ def create_unmapped_summary(df, mappings, output_path):
         if series_id not in mappings:
             unmapped_series.append(
                 {
-                    "Series ID": series_id,
-                    "Series Description": row["series_description"],
-                    "Protocol Name": row["protocol_name"],
-                    "Files": row["series_files"],
+                    "series_id": series_id,
+                    "series_description": row["series_description"],
+                    "protocol_name": row["protocol_name"],
+                    "files": row["series_files"],
                 }
             )
 
@@ -236,7 +242,8 @@ mappings = parse_auto_txt(auto_txt_path)
 df = load_dicominfo(dicominfo_path)
 
 series_list_output = snakemake.output.series_list
-create_series_list(df, mappings, series_list_output)
+series_tsv_output = snakemake.output.series_tsv
+create_series_list(df, mappings, series_list_output, series_tsv_output)
 
 unmapped_output = snakemake.output.unmapped
 create_unmapped_summary(df, mappings, unmapped_output)
