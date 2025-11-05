@@ -245,6 +245,15 @@ rule validate_converted:
             subject=df.subject,
             session=df.session,
         ),
+        convert_qc = expand(
+            stage_convert
+            / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series.svg",
+            zip,
+            subject=df.subject,
+            session=df.session,
+        ),
+
+
     params:
         bids_dir=stage_convert / "bids",
     output:
