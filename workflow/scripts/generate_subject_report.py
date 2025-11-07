@@ -24,29 +24,6 @@ log_file = snakemake.log[0] if snakemake.log else None
 logger = utils.setup_logger(log_file)
 
 
-def extract_subject_session_from_path(file_path):
-    """
-    Extract subject and session IDs from a file path.
-
-    Expects path components like 'sub-{subject}' and 'ses-{session}'.
-
-    Args:
-        file_path: Path to the file
-
-    Returns:
-        tuple: (subject, session) or (None, None) if not found
-    """
-    parts = Path(file_path).parts
-    subject = None
-    session = None
-    for part in parts:
-        if part.startswith("sub-"):
-            subject = part.replace("sub-", "")
-        elif part.startswith("ses-"):
-            session = part.replace("ses-", "")
-    return subject, session
-
-
 def load_series_tsv(series_tsv_file):
     """
     Load a single series TSV file.

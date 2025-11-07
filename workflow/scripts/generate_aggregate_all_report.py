@@ -27,29 +27,6 @@ log_file = snakemake.log[0] if snakemake.log else None
 logger = utils.setup_logger(log_file)
 
 
-def extract_subject_session_from_path(file_path):
-    """
-    Extract subject and session IDs from a file path.
-
-    Expects path components like 'sub-{subject}' and 'ses-{session}'.
-
-    Args:
-        file_path: Path to the file
-
-    Returns:
-        tuple: (subject, session) or (None, None) if not found
-    """
-    parts = Path(file_path).parts
-    subject = None
-    session = None
-    for part in parts:
-        if part.startswith("sub-"):
-            subject = part.replace("sub-", "")
-        elif part.startswith("ses-"):
-            session = part.replace("ses-", "")
-    return subject, session
-
-
 def load_series_tsvs(series_tsv_files):
     """
     Load and aggregate all series TSV files.
@@ -61,7 +38,7 @@ def load_series_tsvs(series_tsv_files):
 
     all_stats = []
     for tsv_file in series_tsv_files:
-        subject, session = extract_subject_session_from_path(tsv_file)
+        subject, session = utils.extract_subject_session_from_path(tsv_file)
 
         if subject and session:
             df = pd.read_csv(tsv_file, sep="\t")
@@ -278,12 +255,12 @@ def create_html_report(session_stats, subject_reports, convert_validator, fix_va
     html_parts.append("<p>Click on a session to view its detailed report.</p>")
 
     if session_stats:
-        # Create mapping from (subject, session) to report path
+        # Create mapping from (subject, session) to report filename
         report_map = {}
         for report_path in subject_reports:
-            subject, session = extract_subject_session_from_path(report_path)
+            subject, session = utils.extract_subject_session_from_path(report_path)
             if subject and session:
-                # Get relative path from the aggregate report location
+                # Store the filename only
                 report_map[(subject, session)] = Path(report_path).name
 
         html_parts.append("<table>")
@@ -302,11 +279,11 @@ def create_html_report(session_stats, subject_reports, convert_validator, fix_va
             n_series = stat["n_series"]
             n_unmapped = stat["n_unmapped"]
 
-            # Get relative path to subject report
+            # Get report filename and construct relative path
             report_filename = report_map.get((subject, session))
             if report_filename:
-                # Link is relative: sub-{subject}/ses-{session}/report.html
-                report_link = f"sub-{html.escape(subject)}/ses-{html.escape(session)}/{report_filename}"
+                # Construct relative path: sub-{subject}/ses-{session}/{filename}
+                report_link = f"sub-{html.escape(subject)}/ses-{html.escape(session)}/{html.escape(report_filename)}"
             else:
                 report_link = "#"
 
