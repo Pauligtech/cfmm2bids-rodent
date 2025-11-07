@@ -254,7 +254,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/72/c5/f70faeb1686a8599009ba3d518ee141a55e9051c2019920a58ac8c41844a/bids_validator_deno-2.2.0-py2.py3-none-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/4e/3e/443ef8bc1fbda78e61f79157f303893f3fddf19ca3c8989b163eb3469a12/black-24.10.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_28_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/c5/55/51844dd50c4fc7a33b653bfaba4c2456f06955289ca770a5dbd5fd267374/cfgv-3.4.0-py2.py3-none-any.whl
-      - pypi: git+https://github.com/khanlab/cfmm2tar?rev=master#79bef5fc2721d0cc190aab669b089f193e6c2618
+      - pypi: git+https://github.com/khanlab/cfmm2tar?rev=master#2b7d198060f146f31037ecbc03e808d1c5db73e0
       - pypi: https://files.pythonhosted.org/packages/13/c3/8ac768b389d5b6dda1c3ce7992b3acd2b46401f9b71439123858b17b1a2c/ci_info-0.3.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/bb/62/04cf229c7068327e7026fc9654f7749cd9274e821caa2ac13e4fa0faa2fb/dcmstack-0.9.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/33/6b/e0547afaf41bf2c42e52430072fa5658766e3d65bd4b03a563d1b6336f57/distlib-0.4.0-py2.py3-none-any.whl
@@ -521,9 +521,9 @@ packages:
   version: 3.4.0
   sha256: b7265b1f29fd3316bfcd2b330d63d024f2bfd8bcb8b0272f8e19a504856c48f9
   requires_python: '>=3.8'
-- pypi: git+https://github.com/khanlab/cfmm2tar?rev=master#79bef5fc2721d0cc190aab669b089f193e6c2618
+- pypi: git+https://github.com/khanlab/cfmm2tar?rev=master#2b7d198060f146f31037ecbc03e808d1c5db73e0
   name: cfmm2tar
-  version: 2.0.3.dev78+g79bef5fc2
+  version: 2.0.3.dev103+g2b7d19806
   requires_dist:
   - pandas>=2.0.0 ; extra == 'dataframe'
   requires_python: '>=3.11'

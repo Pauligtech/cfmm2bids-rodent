@@ -113,16 +113,18 @@ def get_uid_from_wildcards(wildcards):
         within=df,
     )
     if isinstance(matches, tuple):
-        return matches.StudyInstanceUID
+        return f"-u {matches.StudyInstanceUID}"
     else:
         ids = [m.StudyInstanceUID for m in matches]
         if config["merge_duplicate_studies"]:
             print(f"WARNING: Merging multiple matches for {wildcards}")
+            return " ".join([f"-u {i}" for i in ids])
         else:
             bad_ids = "\n".join(ids)
             raise LookupError(
                 f'Multiple studies matched for {wildcards}: \n{bad_ids}\nThese can be merged instead by using setting in the config "merge_duplicate_studies: true" '
             )
+            
 
 
 rule cfmm2tar:
@@ -139,7 +141,7 @@ rule cfmm2tar:
         mem_mb=4000,
         runtime=15,
     shell:
-        "cfmm2tar -c {params.creds_file} {params.cfmm2tar_download_options} -u {params.uid} {output.dicoms_dir} &> {log}"
+        "cfmm2tar -c {params.creds_file} {params.cfmm2tar_download_options} {params.uid} {output.dicoms_dir} &> {log}"
 
 
 rule heudiconv:
