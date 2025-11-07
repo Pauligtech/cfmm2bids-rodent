@@ -62,7 +62,7 @@ def _axcodes2aff(axcodes, scale, translate, labels=None):
     axcodes : sequence of length p
         Axis codes, e.g. ('R','A','S') or (None, 'L', 'S').
     scale: (3,) list of scaling values for X Y Z
-    trans: (3,) list of translation values for X Y Z
+    translate: (3,) list of translation values for X Y Z
     labels : sequence of (2,) label tuples, optional
         Same semantics as for axcodes2ornt / ornt2axcodes.  If None, defaults
         to (('L','R'), ('P','A'), ('I','S')).
