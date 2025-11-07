@@ -209,6 +209,9 @@ rule dataset_description_for_convert:
         stage_convert / "bids/dataset_description.json",
     log:
         "logs/dataset_description/init_dataset_description.log",
+    resources:
+        mem_mb=4000,
+        runtime=1,
     shell:
         "cp {input} {output} &> {log}"
 
