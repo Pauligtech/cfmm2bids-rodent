@@ -74,6 +74,7 @@ rule all:
             session=df.session,
         ),
         final_bids_dir / "dataset_description.json",
+        stage_fix / "qc/aggregate_report.html",
 
 
 rule download:
@@ -94,6 +95,7 @@ rule convert:
 rule fix:
     input:
         validator_json=stage_fix / "qc/bids_validator.json",
+        aggregate_report=stage_fix / "qc/aggregate_report.html",
 
 
 rule qc:
@@ -105,6 +107,43 @@ rule qc:
             subject=df.subject,
             session=df.session,
         ),
+
+
+rule aggregate_report:
+    input:
+        series_tsv=expand(
+            stage_convert
+            / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series.tsv",
+            zip,
+            subject=df.subject,
+            session=df.session,
+        ),
+        filegroup_json=expand(
+            stage_convert
+            / "info/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_filegroup.json",
+            zip,
+            subject=df.subject,
+            session=df.session,
+        ),
+        provenance_json=expand(
+            stage_fix
+            / "info/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_provenance.json",
+            zip,
+            subject=df.subject,
+            session=df.session,
+        ),
+        convert_validator_json=stage_convert / "qc/bids_validator.json",
+        fix_validator_json=stage_fix / "qc/bids_validator.json",
+    output:
+        html_report=stage_fix / "qc/aggregate_report.html",
+    log:
+        "logs/aggregate_report/aggregate_report.log",
+    threads: 1
+    resources:
+        mem_mb=4000,
+        runtime=10,
+    script:
+        "scripts/generate_aggregate_report.py"
 
 
 def get_uid_from_wildcards(wildcards):
