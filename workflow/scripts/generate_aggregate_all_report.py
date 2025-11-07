@@ -15,6 +15,7 @@ The report includes:
 import html
 import json
 from pathlib import Path
+from urllib.parse import quote
 
 import pandas as pd
 from lib import utils
@@ -279,11 +280,11 @@ def create_html_report(session_stats, subject_reports, convert_validator, fix_va
             n_series = stat["n_series"]
             n_unmapped = stat["n_unmapped"]
 
-            # Get report filename and construct relative path
+            # Get report filename and construct relative path with URL encoding
             report_filename = report_map.get((subject, session))
             if report_filename:
-                # Construct relative path: sub-{subject}/ses-{session}/{filename}
-                report_link = f"sub-{html.escape(subject)}/ses-{html.escape(session)}/{html.escape(report_filename)}"
+                # URL encode path components for safety
+                report_link = f"sub-{quote(subject)}/ses-{quote(session)}/{quote(report_filename)}"
             else:
                 report_link = "#"
 
