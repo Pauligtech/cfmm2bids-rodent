@@ -30,6 +30,29 @@ log_file = snakemake.log[0] if snakemake.log else None
 logger = utils.setup_logger(log_file)
 
 
+def extract_subject_session_from_path(file_path):
+    """
+    Extract subject and session IDs from a file path.
+
+    Expects path components like 'sub-{subject}' and 'ses-{session}'.
+
+    Args:
+        file_path: Path to the file
+
+    Returns:
+        tuple: (subject, session) or (None, None) if not found
+    """
+    parts = Path(file_path).parts
+    subject = None
+    session = None
+    for part in parts:
+        if part.startswith("sub-"):
+            subject = part.replace("sub-", "")
+        elif part.startswith("ses-"):
+            session = part.replace("ses-", "")
+    return subject, session
+
+
 def load_series_tsvs(series_tsv_files):
     """
     Load and aggregate all series TSV files.
@@ -41,16 +64,7 @@ def load_series_tsvs(series_tsv_files):
 
     all_data = []
     for tsv_file in series_tsv_files:
-        # Extract subject and session from path
-        # Path format: qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series.tsv
-        parts = Path(tsv_file).parts
-        subject = None
-        session = None
-        for part in parts:
-            if part.startswith("sub-"):
-                subject = part.replace("sub-", "")
-            elif part.startswith("ses-"):
-                session = part.replace("ses-", "")
+        subject, session = extract_subject_session_from_path(tsv_file)
 
         if subject and session:
             df = pd.read_csv(tsv_file, sep="\t")
@@ -94,17 +108,7 @@ def load_json_files(json_files, file_type="JSON"):
 
     all_data = []
     for json_file in json_files:
-        json_path = Path(json_file)
-
-        # Extract subject and session from path
-        parts = json_path.parts
-        subject = None
-        session = None
-        for part in parts:
-            if part.startswith("sub-"):
-                subject = part.replace("sub-", "")
-            elif part.startswith("ses-"):
-                session = part.replace("ses-", "")
+        subject, session = extract_subject_session_from_path(json_file)
 
         try:
             with open(json_file) as f:
@@ -114,7 +118,7 @@ def load_json_files(json_files, file_type="JSON"):
                 {
                     "subject": subject,
                     "session": session,
-                    "file": str(json_path),
+                    "file": str(json_file),
                     "data": data,
                 }
             )
@@ -327,8 +331,9 @@ def create_html_report(
 
         html_parts.append('<div class="stat">')
         html_parts.append('<div class="stat-label">Unmapped Series</div>')
+        unmapped_color = "#e74c3c" if n_unmapped > 0 else "#27ae60"
         html_parts.append(
-            f'<div class="stat-value" style="color: {"#e74c3c" if n_unmapped > 0 else "#27ae60"};">{n_unmapped}</div>'
+            f'<div class="stat-value" style="color: {unmapped_color};">{n_unmapped}</div>'
         )
         html_parts.append("</div>")
     else:
