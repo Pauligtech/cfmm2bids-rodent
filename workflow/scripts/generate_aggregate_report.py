@@ -15,6 +15,7 @@ The report includes:
 - Provenance information
 """
 
+import html
 import json
 from pathlib import Path
 
@@ -372,11 +373,11 @@ def create_html_report(
             data = prov.get("data", {})
 
             html_parts.append(
-                f'<button class="collapsible">sub-{subj} / ses-{sess}</button>'
+                f'<button class="collapsible">sub-{html.escape(subj)} / ses-{html.escape(sess)}</button>'
             )
             html_parts.append('<div class="content">')
             html_parts.append('<div class="json-viewer">')
-            html_parts.append(f"<pre>{json.dumps(data, indent=2)}</pre>")
+            html_parts.append(f"<pre>{html.escape(json.dumps(data, indent=2))}</pre>")
             html_parts.append("</div>")
             html_parts.append("</div>")
 
@@ -396,11 +397,11 @@ def create_html_report(
             data = fg.get("data", {})
 
             html_parts.append(
-                f'<button class="collapsible">sub-{subj} / ses-{sess}</button>'
+                f'<button class="collapsible">sub-{html.escape(subj)} / ses-{html.escape(sess)}</button>'
             )
             html_parts.append('<div class="content">')
             html_parts.append('<div class="json-viewer">')
-            html_parts.append(f"<pre>{json.dumps(data, indent=2)}</pre>")
+            html_parts.append(f"<pre>{html.escape(json.dumps(data, indent=2))}</pre>")
             html_parts.append("</div>")
             html_parts.append("</div>")
 
@@ -445,34 +446,36 @@ def series_df_to_html_table(df):
     Returns:
         str: HTML table
     """
-    html = ['<table style="font-size: 0.9em;">']
+    html_parts = ['<table style="font-size: 0.9em;">']
 
     # Header
-    html.append("<thead><tr>")
+    html_parts.append("<thead><tr>")
     for col in df.columns:
-        html.append(f"<th>{col}</th>")
-    html.append("</tr></thead>")
+        html_parts.append(f"<th>{html.escape(col)}</th>")
+    html_parts.append("</tr></thead>")
 
     # Body
-    html.append("<tbody>")
+    html_parts.append("<tbody>")
     for _, row in df.iterrows():
         # Check if unmapped
         is_unmapped = row.get("bids_path") == "NOT MAPPED"
         row_class = ' class="unmapped"' if is_unmapped else ""
 
-        html.append(f"<tr{row_class}>")
+        html_parts.append(f"<tr{row_class}>")
         for col in df.columns:
             value = row[col]
             # Format value
             value = "" if pd.isna(value) else str(value)
+            # Escape HTML to prevent XSS
+            value = html.escape(value)
 
-            html.append(f"<td>{value}</td>")
-        html.append("</tr>")
-    html.append("</tbody>")
+            html_parts.append(f"<td>{value}</td>")
+        html_parts.append("</tr>")
+    html_parts.append("</tbody>")
 
-    html.append("</table>")
+    html_parts.append("</table>")
 
-    return "\n".join(html)
+    return "\n".join(html_parts)
 
 
 def format_validator_summary(validator_data):
@@ -485,15 +488,17 @@ def format_validator_summary(validator_data):
     Returns:
         str: HTML summary
     """
-    html = []
+    html_parts = []
 
     # Check if valid
     is_valid = validator_data.get("valid", False)
 
     if is_valid:
-        html.append('<p class="validation-pass">✓ Dataset is BIDS compliant</p>')
+        html_parts.append('<p class="validation-pass">✓ Dataset is BIDS compliant</p>')
     else:
-        html.append('<p class="validation-fail">✗ Dataset has validation issues</p>')
+        html_parts.append(
+            '<p class="validation-fail">✗ Dataset has validation issues</p>'
+        )
 
     # Summary counts
     summary = validator_data.get("summary", {})
@@ -501,39 +506,39 @@ def format_validator_summary(validator_data):
     errors = len(validator_data.get("errors", []))
     warnings = len(validator_data.get("warnings", []))
 
-    html.append(f"<p><strong>Total Files:</strong> {total_files}</p>")
-    html.append(
+    html_parts.append(f"<p><strong>Total Files:</strong> {total_files}</p>")
+    html_parts.append(
         f'<p><strong>Errors:</strong> <span class="validation-fail">{errors}</span></p>'
     )
-    html.append(
+    html_parts.append(
         f'<p><strong>Warnings:</strong> <span class="validation-warn">{warnings}</span></p>'
     )
 
     # Show errors if any
     if errors > 0:
-        html.append("<h4>Errors:</h4>")
-        html.append("<ul>")
+        html_parts.append("<h4>Errors:</h4>")
+        html_parts.append("<ul>")
         for error in validator_data.get("errors", [])[:10]:  # Limit to first 10
-            code = error.get("code", "Unknown")
-            message = error.get("message", "No message")
-            html.append(f"<li><strong>{code}:</strong> {message}</li>")
+            code = html.escape(error.get("code", "Unknown"))
+            message = html.escape(error.get("message", "No message"))
+            html_parts.append(f"<li><strong>{code}:</strong> {message}</li>")
         if errors > 10:
-            html.append(f"<li><em>... and {errors - 10} more errors</em></li>")
-        html.append("</ul>")
+            html_parts.append(f"<li><em>... and {errors - 10} more errors</em></li>")
+        html_parts.append("</ul>")
 
     # Show warnings if any (limit to first 5)
     if warnings > 0:
-        html.append("<h4>Warnings (sample):</h4>")
-        html.append("<ul>")
+        html_parts.append("<h4>Warnings (sample):</h4>")
+        html_parts.append("<ul>")
         for warning in validator_data.get("warnings", [])[:5]:
-            code = warning.get("code", "Unknown")
-            message = warning.get("message", "No message")
-            html.append(f"<li><strong>{code}:</strong> {message}</li>")
+            code = html.escape(warning.get("code", "Unknown"))
+            message = html.escape(warning.get("message", "No message"))
+            html_parts.append(f"<li><strong>{code}:</strong> {message}</li>")
         if warnings > 5:
-            html.append(f"<li><em>... and {warnings - 5} more warnings</em></li>")
-        html.append("</ul>")
+            html_parts.append(f"<li><em>... and {warnings - 5} more warnings</em></li>")
+        html_parts.append("</ul>")
 
-    return "\n".join(html)
+    return "\n".join(html_parts)
 
 
 # Main execution
