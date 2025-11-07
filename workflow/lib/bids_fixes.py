@@ -138,7 +138,7 @@ def fix_orientation_quadruped(path: Path, spec: dict) -> bool:
 
     offset = affine @ origin_old_vox
 
-    # adjust offset to obtain phys origin (ie scanner isocentre) in identical vox location
+    # adjust offset to obtain phys origin (ie scanner isocenter) in identical vox location
     affine[:, -1] = -offset[:, 0]
 
     out_img = nib.Nifti1Image(img.dataobj, affine=affine, header=img.header)
