@@ -82,6 +82,20 @@ QC reports are saved in the convert stage: `results/3_convert/qc/sub-{subject}/s
 
 **Note:** The QC report generation is integrated into the Snakemake workflow as a script directive and cannot be run manually as a standalone CLI tool.
 
+### Aggregate HTML Report
+
+After the fix stage, an aggregate HTML report is automatically generated that consolidates QC information from all subjects and sessions. The report includes:
+
+- **Overview Statistics**: Total subjects, sessions, series, and unmapped series count
+- **BIDS Validation Results**: Validation results from both convert and fix stages
+- **Aggregated Series Table**: All series data sorted by subject and session
+- **Post-Conversion Fix Provenance**: Details of fixes applied to each session
+- **Heudiconv Filegroup Metadata**: Detailed metadata from heudiconv conversion (collapsible)
+
+The aggregate report is located at: `results/4_fix/qc/aggregate_report.html`
+
+This report provides a comprehensive overview of the entire dataset conversion process and is useful for quality control and troubleshooting.
+
 ## Configuration
 
 The workflow is configured via `config/config.yaml`. Key configuration sections include:
@@ -253,7 +267,8 @@ results/
     ├── info/
     │   └── sub-*/ses-*/               # Fix provenance files
     └── qc/
-        └── bids_validator.json        # Post-fix validation results
+        ├── bids_validator.json        # Post-fix validation results
+        └── aggregate_report.html      # Aggregate QC report for all sessions
 ```
 
 ## Repository Directory Structure
