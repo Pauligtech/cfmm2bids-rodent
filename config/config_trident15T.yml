@@ -70,14 +70,10 @@ post_convert_fixes:
     updates:
       Units: rad
 
-#  - name: fix_orientation
-#    pattern: "*/*.nii.gz"
-#    action: fix_orientation
+  - name: reset_orientation
+    pattern: "*/*.nii.gz"
+    action: fix_orientation_quadruped
 
-
-#  - name: reset_orientation
-#    pattern: "*/*.nii.gz"
-#    action: reset_orientation
 
 #intermediate output folders
 stages:
