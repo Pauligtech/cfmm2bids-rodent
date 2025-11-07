@@ -22,6 +22,10 @@ from pathlib import Path
 import pandas as pd
 from lib import utils
 
+# Constants for report generation
+MAX_ERRORS_DISPLAY = 10
+MAX_WARNINGS_DISPLAY = 5
+
 log_file = snakemake.log[0] if snakemake.log else None
 logger = utils.setup_logger(log_file)
 
@@ -205,6 +209,9 @@ def create_html_report(
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             margin: 10px 0;
         }
+        table.series-table {
+            font-size: 0.9em;
+        }
         th {
             background-color: #3498db;
             color: white;
@@ -277,7 +284,7 @@ def create_html_report(
             float: right;
         }
         .collapsible.active:after {
-            content: "\\2212"; /* Minus sign */
+            content: '\\2212'; /* Minus sign */
         }
         .content {
             padding: 0 10px;
@@ -446,7 +453,7 @@ def series_df_to_html_table(df):
     Returns:
         str: HTML table
     """
-    html_parts = ['<table style="font-size: 0.9em;">']
+    html_parts = ['<table class="series-table">']
 
     # Header
     html_parts.append("<thead><tr>")
@@ -518,24 +525,28 @@ def format_validator_summary(validator_data):
     if errors > 0:
         html_parts.append("<h4>Errors:</h4>")
         html_parts.append("<ul>")
-        for error in validator_data.get("errors", [])[:10]:  # Limit to first 10
+        for error in validator_data.get("errors", [])[:MAX_ERRORS_DISPLAY]:
             code = html.escape(error.get("code", "Unknown"))
             message = html.escape(error.get("message", "No message"))
             html_parts.append(f"<li><strong>{code}:</strong> {message}</li>")
-        if errors > 10:
-            html_parts.append(f"<li><em>... and {errors - 10} more errors</em></li>")
+        if errors > MAX_ERRORS_DISPLAY:
+            html_parts.append(
+                f"<li><em>... and {errors - MAX_ERRORS_DISPLAY} more errors</em></li>"
+            )
         html_parts.append("</ul>")
 
-    # Show warnings if any (limit to first 5)
+    # Show warnings if any
     if warnings > 0:
         html_parts.append("<h4>Warnings (sample):</h4>")
         html_parts.append("<ul>")
-        for warning in validator_data.get("warnings", [])[:5]:
+        for warning in validator_data.get("warnings", [])[:MAX_WARNINGS_DISPLAY]:
             code = html.escape(warning.get("code", "Unknown"))
             message = html.escape(warning.get("message", "No message"))
             html_parts.append(f"<li><strong>{code}:</strong> {message}</li>")
-        if warnings > 5:
-            html_parts.append(f"<li><em>... and {warnings - 5} more warnings</em></li>")
+        if warnings > MAX_WARNINGS_DISPLAY:
+            html_parts.append(
+                f"<li><em>... and {warnings - MAX_WARNINGS_DISPLAY} more warnings</em></li>"
+            )
         html_parts.append("</ul>")
 
     return "\n".join(html_parts)
