@@ -124,7 +124,6 @@ def get_uid_from_wildcards(wildcards):
             raise LookupError(
                 f'Multiple studies matched for {wildcards}: \n{bad_ids}\nThese can be merged instead by using setting in the config "merge_duplicate_studies: true" '
             )
-            
 
 
 rule cfmm2tar:
