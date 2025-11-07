@@ -98,7 +98,7 @@ def _axcodes2aff(axcodes, scale, translate, labels=None):
 
 @register_fix("fix_orientation_quadruped")
 def fix_orientation_quadruped(path: Path, spec: dict) -> bool:
-    """Robust and minimal reorientation of quadruped (sphinx) data"""
+    """Robust and minimal reorientation of quadruped (sphinx) data."""
     if not any(path.name.endswith(ext) for ext in [".nii", ".nii.gz"]):
         return False
 
