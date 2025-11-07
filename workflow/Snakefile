@@ -109,7 +109,30 @@ rule qc:
         ),
 
 
+rule subject_report:
+    """Generate individual QC report for a single subject/session"""
+    input:
+        series_tsv=stage_convert
+        / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series.tsv",
+        filegroup_json=stage_convert
+        / "info/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_filegroup.json",
+        provenance_json=stage_fix
+        / "info/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_provenance.json",
+    output:
+        html_report=stage_fix
+        / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_report.html",
+    log:
+        "logs/subject_report/sub-{subject}_ses-{session}.log",
+    threads: 1
+    resources:
+        mem_mb=4000,
+        runtime=10,
+    script:
+        "scripts/generate_subject_report.py"
+
+
 rule aggregate_report:
+    """Generate aggregate report with TOC linking to all subject reports"""
     input:
         series_tsv=expand(
             stage_convert
@@ -118,16 +141,9 @@ rule aggregate_report:
             subject=df.subject,
             session=df.session,
         ),
-        filegroup_json=expand(
-            stage_convert
-            / "info/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_filegroup.json",
-            zip,
-            subject=df.subject,
-            session=df.session,
-        ),
-        provenance_json=expand(
+        subject_reports=expand(
             stage_fix
-            / "info/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_provenance.json",
+            / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_report.html",
             zip,
             subject=df.subject,
             session=df.session,
@@ -143,7 +159,7 @@ rule aggregate_report:
         mem_mb=4000,
         runtime=10,
     script:
-        "scripts/generate_aggregate_report.py"
+        "scripts/generate_aggregate_all_report.py"
 
 
 def get_uid_from_wildcards(wildcards):
