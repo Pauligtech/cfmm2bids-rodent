@@ -20,10 +20,6 @@ from urllib.parse import quote
 import pandas as pd
 from lib import utils
 
-# Constants for report generation
-MAX_ERRORS_DISPLAY = 10
-MAX_WARNINGS_DISPLAY = 5
-
 log_file = snakemake.log[0] if snakemake.log else None
 logger = utils.setup_logger(log_file)
 
@@ -341,16 +337,30 @@ def format_validator_summary(validator_data):
     """
     Format validator JSON data into HTML summary.
 
+    Supports the bids-validator-deno JSON format with issues.issues array.
+
     Args:
         validator_data: Dictionary with validator results
 
     Returns:
         str: HTML summary
     """
+    from collections import defaultdict
+
     html_parts = []
 
-    # Check if valid
-    is_valid = validator_data.get("valid", False)
+    # Parse the validator data structure
+    issues_data = validator_data.get("issues", {})
+    issues_list = issues_data.get("issues", [])
+    code_messages = issues_data.get("codeMessages", {})
+    summary = validator_data.get("summary", {})
+
+    # Separate errors and warnings by severity
+    errors = [issue for issue in issues_list if issue.get("severity") == "error"]
+    warnings = [issue for issue in issues_list if issue.get("severity") == "warning"]
+
+    # Check if valid (no errors means valid)
+    is_valid = len(errors) == 0
 
     if is_valid:
         html_parts.append('<p class="validation-pass">✓ Dataset is BIDS compliant</p>')
@@ -359,47 +369,99 @@ def format_validator_summary(validator_data):
             '<p class="validation-fail">✗ Dataset has validation issues</p>'
         )
 
-    # Summary counts
-    summary = validator_data.get("summary", {})
-    total_files = summary.get("totalFiles", 0)
-    errors = len(validator_data.get("errors", []))
-    warnings = len(validator_data.get("warnings", []))
+    # Display summary section
+    html_parts.append("<h4>Summary:</h4>")
+    html_parts.append('<div class="json-viewer" style="max-height: 300px;">')
+    html_parts.append(f"<pre>{html.escape(json.dumps(summary, indent=2))}</pre>")
+    html_parts.append("</div>")
 
-    html_parts.append(f"<p><strong>Total Files:</strong> {total_files}</p>")
+    # Display counts
     html_parts.append(
-        f'<p><strong>Errors:</strong> <span class="validation-fail">{errors}</span></p>'
+        f'<p><strong>Errors:</strong> <span class="validation-fail">{len(errors)}</span></p>'
     )
     html_parts.append(
-        f'<p><strong>Warnings:</strong> <span class="validation-warn">{warnings}</span></p>'
+        f'<p><strong>Warnings:</strong> <span class="validation-warn">{len(warnings)}</span></p>'
     )
 
-    # Show errors if any
-    if errors > 0:
-        html_parts.append("<h4>Errors:</h4>")
-        html_parts.append("<ul>")
-        for error in validator_data.get("errors", [])[:MAX_ERRORS_DISPLAY]:
-            code = html.escape(error.get("code", "Unknown"))
-            message = html.escape(error.get("message", "No message"))
-            html_parts.append(f"<li><strong>{code}:</strong> {message}</li>")
-        if errors > MAX_ERRORS_DISPLAY:
-            html_parts.append(
-                f"<li><em>... and {errors - MAX_ERRORS_DISPLAY} more errors</em></li>"
-            )
-        html_parts.append("</ul>")
+    # Helper function to format issues hierarchically
+    def format_issues_hierarchy(issues, severity_label):
+        if not issues:
+            return
 
-    # Show warnings if any
-    if warnings > 0:
-        html_parts.append("<h4>Warnings (sample):</h4>")
-        html_parts.append("<ul>")
-        for warning in validator_data.get("warnings", [])[:MAX_WARNINGS_DISPLAY]:
-            code = html.escape(warning.get("code", "Unknown"))
-            message = html.escape(warning.get("message", "No message"))
-            html_parts.append(f"<li><strong>{code}:</strong> {message}</li>")
-        if warnings > MAX_WARNINGS_DISPLAY:
-            html_parts.append(
-                f"<li><em>... and {warnings - MAX_WARNINGS_DISPLAY} more warnings</em></li>"
+        html_parts.append(f"<h4>{severity_label}:</h4>")
+
+        # Organize issues: code -> subCode -> locations
+        hierarchy = defaultdict(lambda: defaultdict(list))
+
+        for issue in issues:
+            code = issue.get("code", "Unknown")
+            sub_code = issue.get("subCode", None)
+            location = issue.get("location", "Unknown")
+            issue_msg = issue.get("issueMessage", "")
+
+            hierarchy[code][sub_code].append(
+                {"location": location, "issueMessage": issue_msg}
             )
-        html_parts.append("</ul>")
+
+        # Generate collapsible HTML for each code
+        for code in sorted(hierarchy.keys()):
+            code_msg = code_messages.get(code, "")
+            subcodes = hierarchy[code]
+
+            # Create a unique ID for this collapsible section
+            section_id = f"{severity_label.lower()}_{code}_{id(code)}"
+
+            html_parts.append(
+                f'<button class="collapsible" data-target="{section_id}">'
+            )
+            html_parts.append(f"{html.escape(code)} ({sum(len(locs) for locs in subcodes.values())} issues)")
+            html_parts.append("</button>")
+            html_parts.append(f'<div class="content" id="{section_id}">')
+
+            # Show code-level message if available
+            if code_msg:
+                html_parts.append(f"<p><em>{html.escape(code_msg)}</em></p>")
+
+            # Show subcodes (or locations if no subcode)
+            for sub_code in sorted(subcodes.keys()):
+                locations = subcodes[sub_code]
+
+                if sub_code is not None:
+                    # Has subCode - create another level of hierarchy
+                    subcode_id = f"{section_id}_{sub_code}_{id(sub_code)}"
+                    html_parts.append(
+                        f'<button class="collapsible" style="margin-left: 20px;" data-target="{subcode_id}">'
+                    )
+                    html_parts.append(
+                        f"SubCode: {html.escape(sub_code)} ({len(locations)} locations)"
+                    )
+                    html_parts.append("</button>")
+                    html_parts.append(f'<div class="content" id="{subcode_id}">')
+
+                # Show locations
+                html_parts.append('<ul style="margin-left: 20px;">')
+                for loc_info in locations:
+                    location = loc_info["location"]
+                    issue_msg = loc_info["issueMessage"]
+
+                    html_parts.append(f"<li><strong>{html.escape(location)}</strong>")
+                    if issue_msg:
+                        html_parts.append(
+                            f"<br/><em>{html.escape(issue_msg.strip())}</em>"
+                        )
+                    html_parts.append("</li>")
+                html_parts.append("</ul>")
+
+                if sub_code is not None:
+                    html_parts.append("</div>")  # Close subcode content
+
+            html_parts.append("</div>")  # Close code content
+
+    # Format errors
+    format_issues_hierarchy(errors, "Errors")
+
+    # Format warnings
+    format_issues_hierarchy(warnings, "Warnings")
 
     return "\n".join(html_parts)
 
