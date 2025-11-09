@@ -184,6 +184,50 @@ def create_html_report(session_stats, subject_reports, convert_validator, fix_va
         .success-text {
             color: #27ae60;
         }
+        .summary-fields {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+            margin: 10px 0;
+        }
+        .summary-fields p {
+            margin: 8px 0;
+            line-height: 1.6;
+        }
+        .collapsible {
+            background-color: #3498db;
+            color: white;
+            cursor: pointer;
+            padding: 10px;
+            width: 100%;
+            border: none;
+            text-align: left;
+            outline: none;
+            font-size: 1em;
+            font-weight: bold;
+            margin-top: 10px;
+            border-radius: 3px;
+        }
+        .collapsible:hover {
+            background-color: #2980b9;
+        }
+        .collapsible:after {
+            content: '\\002B'; /* Plus sign */
+            font-weight: bold;
+            float: right;
+        }
+        .collapsible.active:after {
+            content: '\\2212'; /* Minus sign */
+        }
+        .content {
+            padding: 0 10px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.2s ease-out;
+            background-color: white;
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -319,9 +363,23 @@ def create_html_report(session_stats, subject_reports, convert_validator, fix_va
 
     html_parts.append("</div>")
 
-    # Footer
+    # Footer with JavaScript for collapsibles
     html_parts.append(
         """
+    <script>
+    var coll = document.getElementsByClassName("collapsible");
+    for (var i = 0; i < coll.length; i++) {
+        coll[i].addEventListener("click", function() {
+            this.classList.toggle("active");
+            var content = this.nextElementSibling;
+            if (content.style.maxHeight){
+                content.style.maxHeight = null;
+            } else {
+                content.style.maxHeight = content.scrollHeight + "px";
+            }
+        });
+    }
+    </script>
 </body>
 </html>
 """
@@ -369,10 +427,44 @@ def format_validator_summary(validator_data):
             '<p class="validation-fail">✗ Dataset has validation issues</p>'
         )
 
-    # Display summary section
-    html_parts.append("<h4>Summary:</h4>")
-    html_parts.append('<div class="json-viewer" style="max-height: 300px;">')
-    html_parts.append(f"<pre>{html.escape(json.dumps(summary, indent=2))}</pre>")
+    # Display summary section as HTML fields
+    html_parts.append("<h4>Dataset Summary:</h4>")
+    html_parts.append('<div class="summary-fields">')
+    
+    # Display key summary fields
+    if summary:
+        if summary.get("subjects"):
+            subjects_list = summary.get("subjects", [])
+            html_parts.append(f'<p><strong>Subjects:</strong> {", ".join(map(str, subjects_list[:10]))}')
+            if len(subjects_list) > 10:
+                html_parts.append(f' <em>(and {len(subjects_list) - 10} more)</em>')
+            html_parts.append('</p>')
+        
+        if summary.get("sessions"):
+            html_parts.append(f'<p><strong>Sessions:</strong> {", ".join(map(str, summary.get("sessions", [])))})</p>')
+        
+        if summary.get("modalities"):
+            html_parts.append(f'<p><strong>Modalities:</strong> {", ".join(map(str, summary.get("modalities", [])))})</p>')
+        
+        if summary.get("dataTypes"):
+            html_parts.append(f'<p><strong>Data Types:</strong> {", ".join(map(str, summary.get("dataTypes", [])))})</p>')
+        
+        if "totalFiles" in summary:
+            html_parts.append(f'<p><strong>Total Files:</strong> {summary.get("totalFiles")}</p>')
+        
+        if "size" in summary:
+            size_bytes = summary.get("size", 0)
+            # Convert to human readable format
+            for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+                if size_bytes < 1024.0:
+                    size_str = f"{size_bytes:.1f} {unit}"
+                    break
+                size_bytes /= 1024.0
+            html_parts.append(f'<p><strong>Dataset Size:</strong> {size_str}</p>')
+        
+        if "schemaVersion" in summary:
+            html_parts.append(f'<p><strong>BIDS Schema Version:</strong> {summary.get("schemaVersion")}</p>')
+    
     html_parts.append("</div>")
 
     # Display counts

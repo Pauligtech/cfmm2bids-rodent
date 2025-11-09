@@ -244,6 +244,17 @@ def create_html_report(
             color: #f39c12;
             font-weight: bold;
         }
+        .summary-fields {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+            margin: 10px 0;
+        }
+        .summary-fields p {
+            margin: 8px 0;
+            line-height: 1.6;
+        }
         pre {
             background-color: #2c3e50;
             color: #ecf0f1;
@@ -292,6 +303,7 @@ def create_html_report(
             overflow: hidden;
             transition: max-height 0.2s ease-out;
             background-color: white;
+            display: block;
         }
     </style>
 </head>
@@ -522,10 +534,44 @@ def format_validator_summary(validator_data):
             '<p class="validation-fail">✗ Dataset has validation issues</p>'
         )
 
-    # Display summary section
-    html_parts.append("<h4>Summary:</h4>")
-    html_parts.append('<div class="json-viewer" style="max-height: 300px;">')
-    html_parts.append(f"<pre>{html.escape(json.dumps(summary, indent=2))}</pre>")
+    # Display summary section as HTML fields
+    html_parts.append("<h4>Dataset Summary:</h4>")
+    html_parts.append('<div class="summary-fields">')
+    
+    # Display key summary fields
+    if summary:
+        if summary.get("subjects"):
+            subjects_list = summary.get("subjects", [])
+            html_parts.append(f'<p><strong>Subjects:</strong> {", ".join(map(str, subjects_list[:10]))}')
+            if len(subjects_list) > 10:
+                html_parts.append(f' <em>(and {len(subjects_list) - 10} more)</em>')
+            html_parts.append('</p>')
+        
+        if summary.get("sessions"):
+            html_parts.append(f'<p><strong>Sessions:</strong> {", ".join(map(str, summary.get("sessions", [])))})</p>')
+        
+        if summary.get("modalities"):
+            html_parts.append(f'<p><strong>Modalities:</strong> {", ".join(map(str, summary.get("modalities", [])))})</p>')
+        
+        if summary.get("dataTypes"):
+            html_parts.append(f'<p><strong>Data Types:</strong> {", ".join(map(str, summary.get("dataTypes", [])))})</p>')
+        
+        if "totalFiles" in summary:
+            html_parts.append(f'<p><strong>Total Files:</strong> {summary.get("totalFiles")}</p>')
+        
+        if "size" in summary:
+            size_bytes = summary.get("size", 0)
+            # Convert to human readable format
+            for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+                if size_bytes < 1024.0:
+                    size_str = f"{size_bytes:.1f} {unit}"
+                    break
+                size_bytes /= 1024.0
+            html_parts.append(f'<p><strong>Dataset Size:</strong> {size_str}</p>')
+        
+        if "schemaVersion" in summary:
+            html_parts.append(f'<p><strong>BIDS Schema Version:</strong> {summary.get("schemaVersion")}</p>')
+    
     html_parts.append("</div>")
 
     # Display counts
