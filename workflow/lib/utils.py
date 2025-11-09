@@ -7,7 +7,8 @@ def extract_subject_session_from_path(file_path):
     """
     Extract subject and session IDs from a file path.
 
-    Expects path components like 'sub-{subject}' and 'ses-{session}'.
+    Expects path components like 'sub-{subject}' and 'ses-{session}' in directory names.
+    Ignores the filename to avoid extracting from filenames that contain sub-/ses- patterns.
 
     Args:
         file_path: Path to the file
@@ -15,13 +16,17 @@ def extract_subject_session_from_path(file_path):
     Returns:
         tuple: (subject, session) or (None, None) if not found
     """
-    parts = Path(file_path).parts
+    path_obj = Path(file_path)
+    # Use only directory parts, not the filename
+    parts = path_obj.parent.parts if path_obj.parent else []
     subject = None
     session = None
     for part in parts:
-        if part.startswith("sub-"):
+        if part.startswith("sub-") and not subject:
+            # Only extract if we haven't found one yet (take the first occurrence)
             subject = part.replace("sub-", "")
-        elif part.startswith("ses-"):
+        elif part.startswith("ses-") and not session:
+            # Only extract if we haven't found one yet (take the first occurrence)
             session = part.replace("ses-", "")
     return subject, session
 
