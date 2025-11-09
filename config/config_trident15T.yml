@@ -14,6 +14,7 @@ search_specs:
         sanitize: true
       session:
         source: StudyDate
+
   - dicom_query:
       study_description: Menon^*
       study_date: 20230101-
@@ -25,7 +26,11 @@ search_specs:
         sanitize: true
       session:
         source: StudyDate
-   
+ 
+query_kwargs:
+  additional_tags:
+    "00100030": PatientBirthDate
+  
 
 
 # 2. filter

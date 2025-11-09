@@ -126,6 +126,14 @@ search_specs:
   #       source: StudyDate
 
 
+
+# additional options to pass to cfmm query_metadata, e.g. to include additional
+# columns in the metadata based on specific dicom tags (like PatientBirthDate below)
+query_kwargs:
+  additional_tags:
+    "00100030": PatientBirthDate
+ 
+
 # ============================================================================
 # 2. FILTER STAGE - Post-filter queried studies
 # ============================================================================

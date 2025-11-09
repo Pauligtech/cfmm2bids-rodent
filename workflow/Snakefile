@@ -18,7 +18,11 @@ final_bids_dir = Path(config.get("final_bids_dir", "bids"))
 
 
 # query
-df = query_dicoms(config["search_specs"], credentials_file=config["credentials_file"])
+df = query_dicoms(
+    config["search_specs"],
+    credentials_file=config["credentials_file"],
+    **config.get("query_kwargs", dict()),
+)
 
 # save unfiltered list
 stage_query.mkdir(parents=True, exist_ok=True)
