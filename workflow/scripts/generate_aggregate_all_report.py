@@ -79,6 +79,8 @@ def create_html_report(session_stats, subject_reports, convert_validator, fix_va
         str: HTML content
     """
     logger.info("Creating aggregate HTML report...")
+    logger.info(f"Number of session_stats: {len(session_stats)}")
+    logger.info(f"Number of subject_reports: {len(subject_reports) if isinstance(subject_reports, list) else 'not a list'}")
 
     html_parts = []
 
@@ -257,12 +259,23 @@ def create_html_report(session_stats, subject_reports, convert_validator, fix_va
 
     if session_stats:
         # Create mapping from (subject, session) to report filename
+        # Ensure subject_reports is iterable and convert to strings if needed
+        report_paths = [str(p) for p in subject_reports] if subject_reports else []
+        logger.info(f"Processing {len(report_paths)} subject report paths")
+        
         report_map = {}
-        for report_path in subject_reports:
+        for report_path in report_paths:
             subject, session = utils.extract_subject_session_from_path(report_path)
             if subject and session:
                 # Store the filename only
                 report_map[(subject, session)] = Path(report_path).name
+                logger.info(f"Added to report_map: ({subject}, {session}) -> {Path(report_path).name}")
+            else:
+                logger.warning(f"Could not extract subject/session from report path: {report_path}")
+
+        logger.info(f"report_map has {len(report_map)} entries")
+        if report_map:
+            logger.info(f"Sample report_map keys: {list(report_map.keys())[:3]}")
 
         html_parts.append("<table>")
         html_parts.append("<thead><tr>")
@@ -287,6 +300,7 @@ def create_html_report(session_stats, subject_reports, convert_validator, fix_va
                 report_link = f"sub-{quote(subject)}/ses-{quote(session)}/{quote(report_filename)}"
             else:
                 report_link = "#"
+                logger.warning(f"No report found in map for subject={subject}, session={session}")
 
             unmapped_class = "warning-text" if n_unmapped > 0 else "success-text"
 
@@ -395,8 +409,22 @@ logger.info("Starting aggregate all report generation...")
 series_tsv_files = snakemake.input.series_tsv
 session_stats = load_series_tsvs(series_tsv_files)
 
-# Get subject report paths
+# Get subject report paths - ensure it's a list
 subject_reports = snakemake.input.subject_reports
+if subject_reports is None:
+    logger.error("subject_reports is None!")
+    subject_reports = []
+# If it's a single string, wrap it in a list
+elif isinstance(subject_reports, str):
+    logger.warning("subject_reports is a string, wrapping in list")
+    subject_reports = [subject_reports]
+
+logger.info(f"Found {len(subject_reports)} subject report files")
+if len(subject_reports) > 0:
+    for i, report in enumerate(subject_reports[:3]):  # Log first 3 for debugging
+        logger.info(f"  Report {i+1}: {report}")
+else:
+    logger.error("No subject report files found!")
 
 # Load validator JSON files
 convert_validator = None
