@@ -22,10 +22,6 @@ from pathlib import Path
 import pandas as pd
 from lib import utils
 
-# Constants for report generation
-MAX_ERRORS_DISPLAY = 10
-MAX_WARNINGS_DISPLAY = 5
-
 log_file = snakemake.log[0] if snakemake.log else None
 logger = utils.setup_logger(log_file)
 
@@ -248,6 +244,17 @@ def create_html_report(
             color: #f39c12;
             font-weight: bold;
         }
+        .summary-fields {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+            margin: 10px 0;
+        }
+        .summary-fields p {
+            margin: 8px 0;
+            line-height: 1.6;
+        }
         pre {
             background-color: #2c3e50;
             color: #ecf0f1;
@@ -265,37 +272,49 @@ def create_html_report(
             max-height: 400px;
             overflow-y: auto;
         }
-        .collapsible {
+        details {
+            background-color: white;
+            margin: 10px 0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        summary {
             background-color: #3498db;
             color: white;
             cursor: pointer;
             padding: 10px;
-            width: 100%;
-            border: none;
-            text-align: left;
-            outline: none;
             font-size: 1em;
             font-weight: bold;
-            margin-top: 10px;
-            border-radius: 3px;
+            list-style: none;
+            user-select: none;
         }
-        .collapsible:hover {
+        summary:hover {
             background-color: #2980b9;
         }
-        .collapsible:after {
-            content: '\\002B'; /* Plus sign */
-            font-weight: bold;
-            float: right;
+        summary::-webkit-details-marker {
+            display: none;
         }
-        .collapsible.active:after {
-            content: '\\2212'; /* Minus sign */
+        summary::before {
+            content: '▶';
+            display: inline-block;
+            margin-right: 8px;
+            transition: transform 0.2s;
         }
-        .content {
-            padding: 0 10px;
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.2s ease-out;
-            background-color: white;
+        details[open] > summary::before {
+            transform: rotate(90deg);
+        }
+        details > div {
+            padding: 10px;
+        }
+        details details {
+            margin-left: 20px;
+        }
+        details details summary {
+            background-color: #5dade2;
+            font-size: 0.95em;
+        }
+        details details summary:hover {
+            background-color: #3498db;
         }
     </style>
 </head>
@@ -384,14 +403,16 @@ def create_html_report(
             sess = prov.get("session", "unknown")
             data = prov.get("data", {})
 
+            html_parts.append("<details>")
             html_parts.append(
-                f'<button class="collapsible">sub-{html.escape(subj)} / ses-{html.escape(sess)}</button>'
+                f"<summary>sub-{html.escape(subj)} / ses-{html.escape(sess)}</summary>"
             )
-            html_parts.append('<div class="content">')
+            html_parts.append("<div>")
             html_parts.append('<div class="json-viewer">')
             html_parts.append(f"<pre>{html.escape(json.dumps(data, indent=2))}</pre>")
             html_parts.append("</div>")
             html_parts.append("</div>")
+            html_parts.append("</details>")
 
         html_parts.append("</div>")
 
@@ -408,35 +429,22 @@ def create_html_report(
             sess = fg.get("session", "unknown")
             data = fg.get("data", {})
 
+            html_parts.append("<details>")
             html_parts.append(
-                f'<button class="collapsible">sub-{html.escape(subj)} / ses-{html.escape(sess)}</button>'
+                f"<summary>sub-{html.escape(subj)} / ses-{html.escape(sess)}</summary>"
             )
-            html_parts.append('<div class="content">')
+            html_parts.append("<div>")
             html_parts.append('<div class="json-viewer">')
             html_parts.append(f"<pre>{html.escape(json.dumps(data, indent=2))}</pre>")
             html_parts.append("</div>")
             html_parts.append("</div>")
+            html_parts.append("</details>")
 
         html_parts.append("</div>")
 
-    # Footer with JavaScript for collapsibles
+    # Footer
     html_parts.append(
         """
-    <script>
-    var coll = document.getElementsByClassName("collapsible");
-    var i;
-    for (i = 0; i < coll.length; i++) {
-        coll[i].addEventListener("click", function() {
-            this.classList.toggle("active");
-            var content = this.nextElementSibling;
-            if (content.style.maxHeight){
-                content.style.maxHeight = null;
-            } else {
-                content.style.maxHeight = content.scrollHeight + "px";
-            }
-        });
-    }
-    </script>
 </body>
 </html>
 """
@@ -494,16 +502,30 @@ def format_validator_summary(validator_data):
     """
     Format validator JSON data into HTML summary.
 
+    Supports the bids-validator-deno JSON format with issues.issues array.
+
     Args:
         validator_data: Dictionary with validator results
 
     Returns:
         str: HTML summary
     """
+    from collections import defaultdict
+
     html_parts = []
 
-    # Check if valid
-    is_valid = validator_data.get("valid", False)
+    # Parse the validator data structure
+    issues_data = validator_data.get("issues", {})
+    issues_list = issues_data.get("issues", [])
+    code_messages = issues_data.get("codeMessages", {})
+    summary = validator_data.get("summary", {})
+
+    # Separate errors and warnings by severity
+    errors = [issue for issue in issues_list if issue.get("severity") == "error"]
+    warnings = [issue for issue in issues_list if issue.get("severity") == "warning"]
+
+    # Check if valid (no errors means valid)
+    is_valid = len(errors) == 0
 
     if is_valid:
         html_parts.append('<p class="validation-pass">✓ Dataset is BIDS compliant</p>')
@@ -512,47 +534,137 @@ def format_validator_summary(validator_data):
             '<p class="validation-fail">✗ Dataset has validation issues</p>'
         )
 
-    # Summary counts
-    summary = validator_data.get("summary", {})
-    total_files = summary.get("totalFiles", 0)
-    errors = len(validator_data.get("errors", []))
-    warnings = len(validator_data.get("warnings", []))
+    # Display summary section as HTML fields
+    html_parts.append("<h4>Dataset Summary:</h4>")
+    html_parts.append('<div class="summary-fields">')
 
-    html_parts.append(f"<p><strong>Total Files:</strong> {total_files}</p>")
+    # Display key summary fields
+    if summary:
+        if summary.get("subjects"):
+            subjects_list = summary.get("subjects", [])
+            html_parts.append(
+                f"<p><strong>Subjects:</strong> {', '.join(map(str, subjects_list[:10]))}"
+            )
+            if len(subjects_list) > 10:
+                html_parts.append(f" <em>(and {len(subjects_list) - 10} more)</em>")
+            html_parts.append("</p>")
+
+        if summary.get("sessions"):
+            html_parts.append(
+                f"<p><strong>Sessions:</strong> {', '.join(map(str, summary.get('sessions', [])))}</p>"
+            )
+
+        if summary.get("modalities"):
+            html_parts.append(
+                f"<p><strong>Modalities:</strong> {', '.join(map(str, summary.get('modalities', [])))}</p>"
+            )
+
+        if summary.get("dataTypes"):
+            html_parts.append(
+                f"<p><strong>Data Types:</strong> {', '.join(map(str, summary.get('dataTypes', [])))}</p>"
+            )
+
+        if "totalFiles" in summary:
+            html_parts.append(
+                f"<p><strong>Total Files:</strong> {summary.get('totalFiles')}</p>"
+            )
+
+        if "size" in summary:
+            size_bytes = summary.get("size", 0)
+            # Convert to human readable format
+            for unit in ["B", "KB", "MB", "GB", "TB"]:
+                if size_bytes < 1024.0:
+                    size_str = f"{size_bytes:.1f} {unit}"
+                    break
+                size_bytes /= 1024.0
+            html_parts.append(f"<p><strong>Dataset Size:</strong> {size_str}</p>")
+
+        if "schemaVersion" in summary:
+            html_parts.append(
+                f"<p><strong>BIDS Schema Version:</strong> {summary.get('schemaVersion')}</p>"
+            )
+
+    html_parts.append("</div>")
+
+    # Display counts
     html_parts.append(
-        f'<p><strong>Errors:</strong> <span class="validation-fail">{errors}</span></p>'
+        f'<p><strong>Errors:</strong> <span class="validation-fail">{len(errors)}</span></p>'
     )
     html_parts.append(
-        f'<p><strong>Warnings:</strong> <span class="validation-warn">{warnings}</span></p>'
+        f'<p><strong>Warnings:</strong> <span class="validation-warn">{len(warnings)}</span></p>'
     )
 
-    # Show errors if any
-    if errors > 0:
-        html_parts.append("<h4>Errors:</h4>")
-        html_parts.append("<ul>")
-        for error in validator_data.get("errors", [])[:MAX_ERRORS_DISPLAY]:
-            code = html.escape(error.get("code", "Unknown"))
-            message = html.escape(error.get("message", "No message"))
-            html_parts.append(f"<li><strong>{code}:</strong> {message}</li>")
-        if errors > MAX_ERRORS_DISPLAY:
-            html_parts.append(
-                f"<li><em>... and {errors - MAX_ERRORS_DISPLAY} more errors</em></li>"
-            )
-        html_parts.append("</ul>")
+    # Helper function to format issues hierarchically
+    def format_issues_hierarchy(issues, severity_label):
+        if not issues:
+            return
 
-    # Show warnings if any
-    if warnings > 0:
-        html_parts.append("<h4>Warnings (sample):</h4>")
-        html_parts.append("<ul>")
-        for warning in validator_data.get("warnings", [])[:MAX_WARNINGS_DISPLAY]:
-            code = html.escape(warning.get("code", "Unknown"))
-            message = html.escape(warning.get("message", "No message"))
-            html_parts.append(f"<li><strong>{code}:</strong> {message}</li>")
-        if warnings > MAX_WARNINGS_DISPLAY:
-            html_parts.append(
-                f"<li><em>... and {warnings - MAX_WARNINGS_DISPLAY} more warnings</em></li>"
+        # Organize issues: code -> subCode -> locations
+        hierarchy = defaultdict(lambda: defaultdict(list))
+
+        for issue in issues:
+            code = issue.get("code", "Unknown")
+            sub_code = issue.get("subCode", None)
+            location = issue.get("location", "Unknown")
+            issue_msg = issue.get("issueMessage", "")
+
+            hierarchy[code][sub_code].append(
+                {"location": location, "issueMessage": issue_msg}
             )
-        html_parts.append("</ul>")
+
+        # Generate collapsible HTML for each code
+        for code in sorted(hierarchy.keys()):
+            code_msg = code_messages.get(code, "")
+            subcodes = hierarchy[code]
+
+            html_parts.append("<details>")
+            html_parts.append(
+                f"<summary>{html.escape(code)} ({sum(len(locs) for locs in subcodes.values())} issues)</summary>"
+            )
+            html_parts.append("<div>")
+
+            # Show code-level message if available
+            if code_msg:
+                html_parts.append(f"<p><em>{html.escape(code_msg)}</em></p>")
+
+            # Show subcodes (or locations if no subcode)
+            for sub_code in sorted(subcodes.keys()):
+                locations = subcodes[sub_code]
+
+                if sub_code is not None:
+                    # Has subCode - create another level of hierarchy
+                    html_parts.append("<details>")
+                    html_parts.append(
+                        f"<summary>SubCode: {html.escape(sub_code)} ({len(locations)} locations)</summary>"
+                    )
+                    html_parts.append("<div>")
+
+                # Show locations
+                html_parts.append('<ul style="margin-left: 20px;">')
+                for loc_info in locations:
+                    location = loc_info["location"]
+                    issue_msg = loc_info["issueMessage"]
+
+                    html_parts.append(f"<li><strong>{html.escape(location)}</strong>")
+                    if issue_msg:
+                        html_parts.append(
+                            f"<br/><em>{html.escape(issue_msg.strip())}</em>"
+                        )
+                    html_parts.append("</li>")
+                html_parts.append("</ul>")
+
+                if sub_code is not None:
+                    html_parts.append("</div>")  # Close subcode div
+                    html_parts.append("</details>")  # Close subcode details
+
+            html_parts.append("</div>")  # Close code div
+            html_parts.append("</details>")  # Close code details
+
+    # Format errors
+    format_issues_hierarchy(errors, "Errors")
+
+    # Format warnings
+    format_issues_hierarchy(warnings, "Warnings")
 
     return "\n".join(html_parts)
 

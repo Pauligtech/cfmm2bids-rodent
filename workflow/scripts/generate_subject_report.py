@@ -181,37 +181,39 @@ def create_html_report(subject, session, series_df, filegroup_data, provenance_d
             max-height: 400px;
             overflow-y: auto;
         }}
-        .collapsible {{
+        details {{
+            background-color: white;
+            margin: 10px 0;
+            border-radius: 3px;
+            overflow: hidden;
+        }}
+        summary {{
             background-color: #3498db;
             color: white;
             cursor: pointer;
             padding: 10px;
-            width: 100%;
-            border: none;
-            text-align: left;
-            outline: none;
             font-size: 1em;
             font-weight: bold;
-            margin-top: 10px;
-            border-radius: 3px;
+            list-style: none;
+            user-select: none;
         }}
-        .collapsible:hover {{
+        summary:hover {{
             background-color: #2980b9;
         }}
-        .collapsible:after {{
-            content: '\\002B'; /* Plus sign */
-            font-weight: bold;
-            float: right;
+        summary::-webkit-details-marker {{
+            display: none;
         }}
-        .collapsible.active:after {{
-            content: '\\2212'; /* Minus sign */
+        summary::before {{
+            content: '▶';
+            display: inline-block;
+            margin-right: 8px;
+            transition: transform 0.2s;
         }}
-        .content {{
-            padding: 0 10px;
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.2s ease-out;
-            background-color: white;
+        details[open] > summary::before {{
+            transform: rotate(90deg);
+        }}
+        details > div {{
+            padding: 10px;
         }}
     </style>
 </head>
@@ -264,14 +266,16 @@ def create_html_report(subject, session, series_df, filegroup_data, provenance_d
         html_parts.append('<div class="summary-box">')
         html_parts.append("<h2>Post-Conversion Fix Provenance</h2>")
 
-        html_parts.append('<button class="collapsible">View Provenance Data</button>')
-        html_parts.append('<div class="content">')
+        html_parts.append("<details>")
+        html_parts.append("<summary>View Provenance Data</summary>")
+        html_parts.append("<div>")
         html_parts.append('<div class="json-viewer">')
         html_parts.append(
             f"<pre>{html.escape(json.dumps(provenance_data, indent=2))}</pre>"
         )
         html_parts.append("</div>")
         html_parts.append("</div>")
+        html_parts.append("</details>")
 
         html_parts.append("</div>")
 
@@ -280,35 +284,22 @@ def create_html_report(subject, session, series_df, filegroup_data, provenance_d
         html_parts.append('<div class="summary-box">')
         html_parts.append("<h2>Heudiconv Filegroup Metadata</h2>")
 
-        html_parts.append('<button class="collapsible">View Filegroup Data</button>')
-        html_parts.append('<div class="content">')
+        html_parts.append("<details>")
+        html_parts.append("<summary>View Filegroup Data</summary>")
+        html_parts.append("<div>")
         html_parts.append('<div class="json-viewer">')
         html_parts.append(
             f"<pre>{html.escape(json.dumps(filegroup_data, indent=2))}</pre>"
         )
         html_parts.append("</div>")
         html_parts.append("</div>")
+        html_parts.append("</details>")
 
         html_parts.append("</div>")
 
-    # Footer with JavaScript for collapsibles
+    # Footer
     html_parts.append(
         """
-    <script>
-    var coll = document.getElementsByClassName("collapsible");
-    var i;
-    for (i = 0; i < coll.length; i++) {
-        coll[i].addEventListener("click", function() {
-            this.classList.toggle("active");
-            var content = this.nextElementSibling;
-            if (content.style.maxHeight){
-                content.style.maxHeight = null;
-            } else {
-                content.style.maxHeight = content.scrollHeight + "px";
-            }
-        });
-    }
-    </script>
 </body>
 </html>
 """
