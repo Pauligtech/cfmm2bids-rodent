@@ -272,38 +272,49 @@ def create_html_report(
             max-height: 400px;
             overflow-y: auto;
         }
-        .collapsible {
+        details {
+            background-color: white;
+            margin: 10px 0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        summary {
             background-color: #3498db;
             color: white;
             cursor: pointer;
             padding: 10px;
-            width: 100%;
-            border: none;
-            text-align: left;
-            outline: none;
             font-size: 1em;
             font-weight: bold;
-            margin-top: 10px;
-            border-radius: 3px;
+            list-style: none;
+            user-select: none;
         }
-        .collapsible:hover {
+        summary:hover {
             background-color: #2980b9;
         }
-        .collapsible:after {
-            content: '\\002B'; /* Plus sign */
-            font-weight: bold;
-            float: right;
+        summary::-webkit-details-marker {
+            display: none;
         }
-        .collapsible.active:after {
-            content: '\\2212'; /* Minus sign */
+        summary::before {
+            content: '▶';
+            display: inline-block;
+            margin-right: 8px;
+            transition: transform 0.2s;
         }
-        .content {
-            padding: 0 10px;
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.2s ease-out;
-            background-color: white;
-            display: block;
+        details[open] > summary::before {
+            transform: rotate(90deg);
+        }
+        details > div {
+            padding: 10px;
+        }
+        details details {
+            margin-left: 20px;
+        }
+        details details summary {
+            background-color: #5dade2;
+            font-size: 0.95em;
+        }
+        details details summary:hover {
+            background-color: #3498db;
         }
     </style>
 </head>
@@ -392,14 +403,16 @@ def create_html_report(
             sess = prov.get("session", "unknown")
             data = prov.get("data", {})
 
+            html_parts.append("<details>")
             html_parts.append(
-                f'<button class="collapsible">sub-{html.escape(subj)} / ses-{html.escape(sess)}</button>'
+                f"<summary>sub-{html.escape(subj)} / ses-{html.escape(sess)}</summary>"
             )
-            html_parts.append('<div class="content">')
+            html_parts.append("<div>")
             html_parts.append('<div class="json-viewer">')
             html_parts.append(f"<pre>{html.escape(json.dumps(data, indent=2))}</pre>")
             html_parts.append("</div>")
             html_parts.append("</div>")
+            html_parts.append("</details>")
 
         html_parts.append("</div>")
 
@@ -416,49 +429,22 @@ def create_html_report(
             sess = fg.get("session", "unknown")
             data = fg.get("data", {})
 
+            html_parts.append("<details>")
             html_parts.append(
-                f'<button class="collapsible">sub-{html.escape(subj)} / ses-{html.escape(sess)}</button>'
+                f"<summary>sub-{html.escape(subj)} / ses-{html.escape(sess)}</summary>"
             )
-            html_parts.append('<div class="content">')
+            html_parts.append("<div>")
             html_parts.append('<div class="json-viewer">')
             html_parts.append(f"<pre>{html.escape(json.dumps(data, indent=2))}</pre>")
             html_parts.append("</div>")
             html_parts.append("</div>")
+            html_parts.append("</details>")
 
         html_parts.append("</div>")
 
-    # Footer with JavaScript for collapsibles
+    # Footer
     html_parts.append(
         """
-    <script>
-    function updateParentHeights(element) {
-        // Update all parent .content elements to accommodate expanded children
-        var parent = element.parentElement;
-        while (parent) {
-            if (parent.classList && parent.classList.contains('content')) {
-                if (parent.style.maxHeight) {
-                    parent.style.maxHeight = parent.scrollHeight + "px";
-                }
-            }
-            parent = parent.parentElement;
-        }
-    }
-    
-    var coll = document.getElementsByClassName("collapsible");
-    for (var i = 0; i < coll.length; i++) {
-        coll[i].addEventListener("click", function() {
-            this.classList.toggle("active");
-            var content = this.nextElementSibling;
-            if (content.style.maxHeight){
-                content.style.maxHeight = null;
-            } else {
-                content.style.maxHeight = content.scrollHeight + "px";
-            }
-            // Update parent heights to accommodate the change
-            updateParentHeights(this);
-        });
-    }
-    </script>
 </body>
 </html>
 """
@@ -551,41 +537,53 @@ def format_validator_summary(validator_data):
     # Display summary section as HTML fields
     html_parts.append("<h4>Dataset Summary:</h4>")
     html_parts.append('<div class="summary-fields">')
-    
+
     # Display key summary fields
     if summary:
         if summary.get("subjects"):
             subjects_list = summary.get("subjects", [])
-            html_parts.append(f'<p><strong>Subjects:</strong> {", ".join(map(str, subjects_list[:10]))}')
+            html_parts.append(
+                f"<p><strong>Subjects:</strong> {', '.join(map(str, subjects_list[:10]))}"
+            )
             if len(subjects_list) > 10:
-                html_parts.append(f' <em>(and {len(subjects_list) - 10} more)</em>')
-            html_parts.append('</p>')
-        
+                html_parts.append(f" <em>(and {len(subjects_list) - 10} more)</em>")
+            html_parts.append("</p>")
+
         if summary.get("sessions"):
-            html_parts.append(f'<p><strong>Sessions:</strong> {", ".join(map(str, summary.get("sessions", [])))}</p>')
-        
+            html_parts.append(
+                f"<p><strong>Sessions:</strong> {', '.join(map(str, summary.get('sessions', [])))}</p>"
+            )
+
         if summary.get("modalities"):
-            html_parts.append(f'<p><strong>Modalities:</strong> {", ".join(map(str, summary.get("modalities", [])))}</p>')
-        
+            html_parts.append(
+                f"<p><strong>Modalities:</strong> {', '.join(map(str, summary.get('modalities', [])))}</p>"
+            )
+
         if summary.get("dataTypes"):
-            html_parts.append(f'<p><strong>Data Types:</strong> {", ".join(map(str, summary.get("dataTypes", [])))}</p>')
-        
+            html_parts.append(
+                f"<p><strong>Data Types:</strong> {', '.join(map(str, summary.get('dataTypes', [])))}</p>"
+            )
+
         if "totalFiles" in summary:
-            html_parts.append(f'<p><strong>Total Files:</strong> {summary.get("totalFiles")}</p>')
-        
+            html_parts.append(
+                f"<p><strong>Total Files:</strong> {summary.get('totalFiles')}</p>"
+            )
+
         if "size" in summary:
             size_bytes = summary.get("size", 0)
             # Convert to human readable format
-            for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+            for unit in ["B", "KB", "MB", "GB", "TB"]:
                 if size_bytes < 1024.0:
                     size_str = f"{size_bytes:.1f} {unit}"
                     break
                 size_bytes /= 1024.0
-            html_parts.append(f'<p><strong>Dataset Size:</strong> {size_str}</p>')
-        
+            html_parts.append(f"<p><strong>Dataset Size:</strong> {size_str}</p>")
+
         if "schemaVersion" in summary:
-            html_parts.append(f'<p><strong>BIDS Schema Version:</strong> {summary.get("schemaVersion")}</p>')
-    
+            html_parts.append(
+                f"<p><strong>BIDS Schema Version:</strong> {summary.get('schemaVersion')}</p>"
+            )
+
     html_parts.append("</div>")
 
     # Display counts
@@ -619,15 +617,11 @@ def format_validator_summary(validator_data):
             code_msg = code_messages.get(code, "")
             subcodes = hierarchy[code]
 
-            # Create a unique ID for this collapsible section
-            section_id = f"{severity_label.lower()}_{code}_{id(code)}"
-
+            html_parts.append("<details>")
             html_parts.append(
-                f'<button class="collapsible" data-target="{section_id}">'
+                f"<summary>{html.escape(code)} ({sum(len(locs) for locs in subcodes.values())} issues)</summary>"
             )
-            html_parts.append(f"{html.escape(code)} ({sum(len(locs) for locs in subcodes.values())} issues)")
-            html_parts.append("</button>")
-            html_parts.append(f'<div class="content" id="{section_id}">')
+            html_parts.append("<div>")
 
             # Show code-level message if available
             if code_msg:
@@ -639,15 +633,11 @@ def format_validator_summary(validator_data):
 
                 if sub_code is not None:
                     # Has subCode - create another level of hierarchy
-                    subcode_id = f"{section_id}_{sub_code}_{id(sub_code)}"
+                    html_parts.append("<details>")
                     html_parts.append(
-                        f'<button class="collapsible" style="margin-left: 20px;" data-target="{subcode_id}">'
+                        f"<summary>SubCode: {html.escape(sub_code)} ({len(locations)} locations)</summary>"
                     )
-                    html_parts.append(
-                        f"SubCode: {html.escape(sub_code)} ({len(locations)} locations)"
-                    )
-                    html_parts.append("</button>")
-                    html_parts.append(f'<div class="content" id="{subcode_id}">')
+                    html_parts.append("<div>")
 
                 # Show locations
                 html_parts.append('<ul style="margin-left: 20px;">')
@@ -664,9 +654,11 @@ def format_validator_summary(validator_data):
                 html_parts.append("</ul>")
 
                 if sub_code is not None:
-                    html_parts.append("</div>")  # Close subcode content
+                    html_parts.append("</div>")  # Close subcode div
+                    html_parts.append("</details>")  # Close subcode details
 
-            html_parts.append("</div>")  # Close code content
+            html_parts.append("</div>")  # Close code div
+            html_parts.append("</details>")  # Close code details
 
     # Format errors
     format_issues_hierarchy(errors, "Errors")
