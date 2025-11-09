@@ -367,6 +367,19 @@ def create_html_report(session_stats, subject_reports, convert_validator, fix_va
     html_parts.append(
         """
     <script>
+    function updateParentHeights(element) {
+        // Update all parent .content elements to accommodate expanded children
+        var parent = element.parentElement;
+        while (parent) {
+            if (parent.classList && parent.classList.contains('content')) {
+                if (parent.style.maxHeight) {
+                    parent.style.maxHeight = parent.scrollHeight + "px";
+                }
+            }
+            parent = parent.parentElement;
+        }
+    }
+    
     var coll = document.getElementsByClassName("collapsible");
     for (var i = 0; i < coll.length; i++) {
         coll[i].addEventListener("click", function() {
@@ -377,6 +390,8 @@ def create_html_report(session_stats, subject_reports, convert_validator, fix_va
             } else {
                 content.style.maxHeight = content.scrollHeight + "px";
             }
+            // Update parent heights to accommodate the change
+            updateParentHeights(this);
         });
     }
     </script>
@@ -441,13 +456,13 @@ def format_validator_summary(validator_data):
             html_parts.append('</p>')
         
         if summary.get("sessions"):
-            html_parts.append(f'<p><strong>Sessions:</strong> {", ".join(map(str, summary.get("sessions", [])))})</p>')
+            html_parts.append(f'<p><strong>Sessions:</strong> {", ".join(map(str, summary.get("sessions", [])))}</p>')
         
         if summary.get("modalities"):
-            html_parts.append(f'<p><strong>Modalities:</strong> {", ".join(map(str, summary.get("modalities", [])))})</p>')
+            html_parts.append(f'<p><strong>Modalities:</strong> {", ".join(map(str, summary.get("modalities", [])))}</p>')
         
         if summary.get("dataTypes"):
-            html_parts.append(f'<p><strong>Data Types:</strong> {", ".join(map(str, summary.get("dataTypes", [])))})</p>')
+            html_parts.append(f'<p><strong>Data Types:</strong> {", ".join(map(str, summary.get("dataTypes", [])))}</p>')
         
         if "totalFiles" in summary:
             html_parts.append(f'<p><strong>Total Files:</strong> {summary.get("totalFiles")}</p>')
@@ -479,8 +494,6 @@ def format_validator_summary(validator_data):
     def format_issues_hierarchy(issues, severity_label):
         if not issues:
             return
-
-        html_parts.append(f"<h4>{severity_label}:</h4>")
 
         # Organize issues: code -> subCode -> locations
         hierarchy = defaultdict(lambda: defaultdict(list))
