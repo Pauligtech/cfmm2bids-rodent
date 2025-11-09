@@ -299,8 +299,10 @@ def create_html_report(session_stats, subject_reports, convert_validator, fix_va
                 # URL encode path components for safety
                 report_link = f"sub-{quote(subject)}/ses-{quote(session)}/{quote(report_filename)}"
             else:
-                report_link = "#"
-                logger.warning(f"No report found in map for subject={subject}, session={session}")
+                # Fallback: construct expected filename even if not in map
+                expected_filename = f"sub-{subject}_ses-{session}_report.html"
+                report_link = f"sub-{quote(subject)}/ses-{quote(session)}/{quote(expected_filename)}"
+                logger.warning(f"No report found in map for subject={subject}, session={session}, using fallback link: {report_link}")
 
             unmapped_class = "warning-text" if n_unmapped > 0 else "success-text"
 
