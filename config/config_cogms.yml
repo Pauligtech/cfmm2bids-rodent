@@ -67,6 +67,11 @@ study_filter_specs:
     # Default behavior: Time since first session (baseline mode)
     # Sessions labeled as '0m', '6m', '12m', etc.
     
+    # Zero-pad session labels (optional, default: false)
+    # Set to true to ensure proper alphanumeric sorting of sessions
+    # Example: '00m', '06m', '12m' instead of '0m', '6m', '12m'
+    # zero_pad: false
+    
     # Alternative: Calculate age at scan using birth date
     # Uncomment the following lines to use PatientBirthDate as reference:
     # reference_col: 'PatientBirthDate'

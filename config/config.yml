@@ -189,6 +189,14 @@ study_filter_specs:
     #   - 9-15 months → 12m
     # round_step: 6
     
+    # Zero-pad session labels (OPTIONAL, default: false)
+    # If true, pads session labels with leading zeros to the width of the largest number.
+    # For example, if the maximum value is 100 months:
+    #   - With zero_pad=false: '0m', '6m', '12m', '100m'
+    #   - With zero_pad=true: '000m', '006m', '012m', '100m'
+    # This is useful for ensuring proper alphanumeric sorting of session labels.
+    # zero_pad: false
+    
     # Reference date column (OPTIONAL)
     # If not specified, uses first session per subject as reference (baseline mode)
     # If specified, uses that column as reference date (e.g., for age at scan)
