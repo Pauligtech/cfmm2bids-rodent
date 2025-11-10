@@ -147,13 +147,16 @@ def merge_dicominfo_files(info_files: list[dict[str, Path]], output_tsv: Path) -
 
         if i > 0:
             # Calculate offset based on max series_id from all previous studies
-            offset = int(
-                max(
-                    df["series_id"].max()
-                    for df in all_dfs
-                    if "series_id" in df.columns
+            offset = (
+                int(
+                    max(
+                        df["series_id"].max()
+                        for df in all_dfs
+                        if "series_id" in df.columns
+                    )
                 )
-            ) + 1000  # Add buffer to avoid conflicts
+                + 1000
+            )  # Add buffer to avoid conflicts
 
         # Apply offset to this study's series IDs
         if i > 0 and "series_id" in df.columns:
@@ -313,9 +316,17 @@ def process_single_study_heudiconv(
     # Copy outputs to final locations
     output_info_dir.mkdir(parents=True, exist_ok=True)
 
-    shutil.copy2(info["auto_txt"], output_info_dir / f"sub-{subject}_ses-{session}_auto.txt")
-    shutil.copy2(info["dicominfo_tsv"], output_info_dir / f"sub-{subject}_ses-{session}_dicominfo.tsv")
-    shutil.copy2(info["filegroup_json"], output_info_dir / f"sub-{subject}_ses-{session}_filegroup.json")
+    shutil.copy2(
+        info["auto_txt"], output_info_dir / f"sub-{subject}_ses-{session}_auto.txt"
+    )
+    shutil.copy2(
+        info["dicominfo_tsv"],
+        output_info_dir / f"sub-{subject}_ses-{session}_dicominfo.tsv",
+    )
+    shutil.copy2(
+        info["filegroup_json"],
+        output_info_dir / f"sub-{subject}_ses-{session}_filegroup.json",
+    )
 
     # Copy BIDS directory
     output_bids_dir.mkdir(parents=True, exist_ok=True)
