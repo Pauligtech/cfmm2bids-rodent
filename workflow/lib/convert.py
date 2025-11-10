@@ -208,10 +208,26 @@ def merge_filegroup_files(info_files: list[dict[str, Path]], output_json: Path) 
     for info in info_files:
         with open(info["filegroup_json"]) as f:
             data = json.load(f)
-            # Add study_uid to each entry
-            for entry in data:
-                entry["study_uid"] = info["study_uid"]
-            merged_data.extend(data)
+            # Handle different possible JSON structures
+            if isinstance(data, list):
+                # If it's a list, process each entry
+                for entry in data:
+                    if isinstance(entry, dict):
+                        # If entry is a dict, add study_uid
+                        entry["study_uid"] = info["study_uid"]
+                        merged_data.append(entry)
+                    else:
+                        # If entry is not a dict (e.g., string), wrap it
+                        merged_data.append(
+                            {"value": entry, "study_uid": info["study_uid"]}
+                        )
+            elif isinstance(data, dict):
+                # If it's a dict, add study_uid and append
+                data["study_uid"] = info["study_uid"]
+                merged_data.append(data)
+            else:
+                # For other types, wrap in dict
+                merged_data.append({"value": data, "study_uid": info["study_uid"]})
 
     with open(output_json, "w") as f:
         json.dump(merged_data, f, indent=2)
