@@ -48,11 +48,15 @@ study_filter_specs:
     units: 'months'
     
     # Rounding step for time intervals (OPTIONAL, default: 6)
-    # For example, with units='months' and round_step=6:
-    #   - 0-3 months → baseline (0)
-    #   - 3-9 months → 6 months (6)
-    #   - 9-15 months → 12 months (12)
+    # For example, with units='months' and round_step=1:
+    #   - Sessions will be labeled by rounded month intervals (0m, 1m, 2m, etc.)
     round_step: 1
+    
+    # Reference date mode (OPTIONAL)
+    # Default (commented out): Uses first session per subject as reference (baseline mode)
+    # Alternative: Use PatientBirthDate to calculate age at scan
+    # reference_col: 'PatientBirthDate'
+    # reference_format: '%Y%m%d'
  
 # 3. download
 cfmm2tar_download_options: '--skip-derived'
