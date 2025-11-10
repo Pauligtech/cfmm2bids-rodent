@@ -185,19 +185,6 @@ def get_uid_from_wildcards(wildcards):
             )
 
 
-def is_multi_study(wildcards):
-    """Check if this subject/session has multiple studies that need merging."""
-    matches = lookup(
-        query=f"subject == '{wildcards.subject}' and session == '{wildcards.session}'",
-        within=df,
-    )
-    # If matches is a tuple, it's a single study
-    if isinstance(matches, tuple):
-        return False
-    # If matches is a list/iterable with multiple entries, check merge config
-    return len(list(matches)) > 1 and config["merge_duplicate_studies"]
-
-
 rule cfmm2tar:
     params:
         uid=get_uid_from_wildcards,
@@ -254,99 +241,8 @@ rule heudiconv:
         runtime=30,
     group:
         "convert"
-    run:
-        import subprocess
-        from pathlib import Path
-        import shutil
-
-        # Check if this is a multi-study case
-        multi_study = is_multi_study(wildcards)
-
-        if multi_study:
-            # Use the multi-study processing script
-            with open(log[0], "w") as logf:
-                logf.write("Multi-study processing detected\n")
-                logf.write(f"Running multi-study heudiconv script\n\n")
-
-            cmd = [
-                "python",
-                "workflow/scripts/run_heudiconv_multi_study.py",
-                "--dicoms-dir",
-                str(input.dicoms_dir),
-                "--subject",
-                wildcards.subject,
-                "--session",
-                wildcards.session,
-                "--heuristic",
-                str(input.heuristic),
-                "--dcmconfig-json",
-                str(input.dcmconfig_json),
-                "--heudiconv-options",
-                params.heudiconv_options,
-                "--output-bids-dir",
-                str(output.bids_subj_dir),
-                "--output-info-dir",
-                str(params.out_info_dir),
-                "--temp-dir",
-                str(params.temp_dir),
-            ]
-
-            with open(log[0], "a") as logf:
-                result = subprocess.run(
-                    cmd, stdout=logf, stderr=subprocess.STDOUT, text=True
-                )
-
-            if result.returncode != 0:
-                raise RuntimeError(
-                    f"Multi-study heudiconv processing failed. Check {log[0]}"
-                )
-
-        else:
-            # Standard single-study processing
-            with open(log[0], "w") as logf:
-                logf.write("Single-study processing\n")
-                logf.write(f"Running standard heudiconv\n\n")
-
-            cmd = (
-                f"heudiconv --files {input.dicoms_dir}"
-                f" -c dcm2niix"
-                f" -o {params.out_bids}"
-                f" -ss {wildcards.session}"
-                f" -s {wildcards.subject}"
-                f" -f {input.heuristic}"
-                f" --bids notop"
-                f" --dcmconfig {input.dcmconfig_json}"
-                f" --overwrite"
-                f" {params.heudiconv_options}"
-            )
-
-            with open(log[0], "a") as logf:
-                result = subprocess.run(
-                    cmd, shell=True, stdout=logf, stderr=subprocess.STDOUT, text=True
-                )
-
-            if result.returncode != 0:
-                raise RuntimeError(f"Heudiconv failed. Check {log[0]}")
-
-                # Copy info files to output location
-            params.out_info_dir.mkdir(parents=True, exist_ok=True)
-
-            in_auto_txt = (
-                params.out_bids
-                / f".heudiconv/{wildcards.subject}/ses-{wildcards.session}/info/{wildcards.subject}_ses-{wildcards.session}.auto.txt"
-            )
-            in_dicominfo_tsv = (
-                params.out_bids
-                / f".heudiconv/{wildcards.subject}/ses-{wildcards.session}/info/dicominfo_ses-{wildcards.session}.tsv"
-            )
-            in_filegroup_json = (
-                params.out_bids
-                / f".heudiconv/{wildcards.subject}/ses-{wildcards.session}/info/filegroup_ses-{wildcards.session}.json"
-            )
-
-            shutil.copy2(in_auto_txt, output.auto_txt)
-            shutil.copy2(in_dicominfo_tsv, output.dicominfo_tsv)
-            shutil.copy2(in_filegroup_json, output.filegroup_json)
+    script:
+        "scripts/run_heudiconv.py"
 
 
 rule dataset_description_for_convert:

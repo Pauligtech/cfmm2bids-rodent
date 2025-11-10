@@ -1,24 +1,14 @@
-#!/usr/bin/env python3
-"""
-Script to run heudiconv on multiple tar files (multiple studies) separately,
-then merge the outputs with proper series ID offsetting.
+"""Helper functions for DICOM to BIDS conversion with heudiconv."""
 
-This handles the case where merge_duplicate_studies is enabled and multiple
-studies are downloaded into the same directory.
-"""
-
-import argparse
 import json
 import logging
 import shutil
 import subprocess
-import sys
 import tarfile
 from pathlib import Path
 
 import pandas as pd
 
-logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -266,78 +256,41 @@ def merge_bids_directories(
     logger.info(f"Merged BIDS directory created at {output_bids_dir}")
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Run heudiconv on multiple studies and merge outputs"
-    )
-    parser.add_argument(
-        "--dicoms-dir",
-        type=Path,
-        required=True,
-        help="Directory containing tar files",
-    )
-    parser.add_argument(
-        "--subject",
-        type=str,
-        required=True,
-        help="Subject ID",
-    )
-    parser.add_argument(
-        "--session",
-        type=str,
-        required=True,
-        help="Session ID",
-    )
-    parser.add_argument(
-        "--heuristic",
-        type=Path,
-        required=True,
-        help="Path to heudiconv heuristic file",
-    )
-    parser.add_argument(
-        "--dcmconfig-json",
-        type=Path,
-        required=True,
-        help="Path to dcm2niix config JSON",
-    )
-    parser.add_argument(
-        "--heudiconv-options",
-        type=str,
-        default="",
-        help="Additional heudiconv options",
-    )
-    parser.add_argument(
-        "--output-bids-dir",
-        type=Path,
-        required=True,
-        help="Output BIDS directory",
-    )
-    parser.add_argument(
-        "--output-info-dir",
-        type=Path,
-        required=True,
-        help="Output directory for info files",
-    )
-    parser.add_argument(
-        "--temp-dir",
-        type=Path,
-        required=True,
-        help="Temporary directory for processing",
-    )
+def process_multi_study_heudiconv(
+    dicoms_dir: Path,
+    subject: str,
+    session: str,
+    heuristic: Path,
+    dcmconfig_json: Path,
+    heudiconv_options: str,
+    output_bids_dir: Path,
+    output_info_dir: Path,
+    temp_dir: Path,
+) -> None:
+    """
+    Process multiple tar files with heudiconv and merge outputs.
 
-    args = parser.parse_args()
-
+    Args:
+        dicoms_dir: Directory containing tar files
+        subject: Subject ID
+        session: Session ID
+        heuristic: Path to heudiconv heuristic file
+        dcmconfig_json: Path to dcm2niix config JSON
+        heudiconv_options: Additional heudiconv options
+        output_bids_dir: Output BIDS directory
+        output_info_dir: Output directory for info files
+        temp_dir: Temporary directory for processing
+    """
     # Find tar files
-    tar_files = find_tar_files(args.dicoms_dir)
+    tar_files = find_tar_files(dicoms_dir)
 
     if not tar_files:
-        logger.error(f"No tar files found in {args.dicoms_dir}")
-        sys.exit(1)
+        raise FileNotFoundError(f"No tar files found in {dicoms_dir}")
 
     if len(tar_files) == 1:
         logger.warning(
-            "Only one tar file found. This script is intended for multiple studies. "
-            "Consider using the standard heudiconv rule instead."
+            "Only one tar file found. This function is intended for multiple studies. "
+            "Consider using the standard heudiconv processing instead."
         )
 
     logger.info(f"Found {len(tar_files)} tar file(s) to process")
@@ -347,34 +300,30 @@ def main():
     for tar_file in tar_files:
         info = run_heudiconv_for_study(
             tar_file,
-            args.temp_dir,
-            args.subject,
-            args.session,
-            args.heuristic,
-            args.dcmconfig_json,
-            args.heudiconv_options,
+            temp_dir,
+            subject,
+            session,
+            heuristic,
+            dcmconfig_json,
+            heudiconv_options,
         )
         info_files.append(info)
 
     # Merge outputs
-    args.output_info_dir.mkdir(parents=True, exist_ok=True)
+    output_info_dir.mkdir(parents=True, exist_ok=True)
 
     merge_auto_txt_files(
         info_files,
-        args.output_info_dir / f"sub-{args.subject}_ses-{args.session}_auto.txt",
+        output_info_dir / f"sub-{subject}_ses-{session}_auto.txt",
     )
     merge_dicominfo_files(
         info_files,
-        args.output_info_dir / f"sub-{args.subject}_ses-{args.session}_dicominfo.tsv",
+        output_info_dir / f"sub-{subject}_ses-{session}_dicominfo.tsv",
     )
     merge_filegroup_files(
         info_files,
-        args.output_info_dir / f"sub-{args.subject}_ses-{args.session}_filegroup.json",
+        output_info_dir / f"sub-{subject}_ses-{session}_filegroup.json",
     )
-    merge_bids_directories(info_files, args.output_bids_dir)
+    merge_bids_directories(info_files, output_bids_dir)
 
     logger.info("Multi-study heudiconv processing completed successfully!")
-
-
-if __name__ == "__main__":
-    main()
