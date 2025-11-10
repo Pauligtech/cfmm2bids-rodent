@@ -124,10 +124,29 @@ def run_heudiconv_for_study(
 
 
 def offset_series_ids(df: pd.DataFrame, offset: int) -> pd.DataFrame:
-    """Offset series_id column in dicominfo dataframe."""
+    """Offset series_id column in dicominfo dataframe.
+
+    Only offsets numeric series_id values. String values are left unchanged.
+    """
     df = df.copy()
     if "series_id" in df.columns:
-        df["series_id"] = df["series_id"] + offset
+        # Check if series_id is numeric
+        series_id = df["series_id"]
+        if pd.api.types.is_numeric_dtype(series_id):
+            df["series_id"] = series_id + offset
+        else:
+            # For mixed or string types, only offset numeric values
+            try:
+                # Try to convert to numeric, coercing errors to NaN
+                numeric_ids = pd.to_numeric(series_id, errors="coerce")
+                # Only offset where conversion succeeded (not NaN)
+                mask = numeric_ids.notna()
+                df.loc[mask, "series_id"] = numeric_ids[mask] + offset
+            except Exception:
+                # If conversion fails entirely, leave series_id unchanged
+                logger.warning(
+                    "Could not offset series_id values - column contains non-numeric data"
+                )
     return df
 
 
@@ -135,7 +154,7 @@ def merge_dicominfo_files(info_files: list[dict[str, Path]], output_tsv: Path) -
     """
     Merge dicominfo.tsv files with series ID offsetting.
 
-    Each study's series IDs are offset to avoid conflicts.
+    Each study's series IDs are offset to avoid conflicts (only for numeric IDs).
     """
     logger.info("Merging dicominfo.tsv files...")
 
@@ -145,22 +164,26 @@ def merge_dicominfo_files(info_files: list[dict[str, Path]], output_tsv: Path) -
     for i, info in enumerate(info_files):
         df = pd.read_csv(info["dicominfo_tsv"], sep="\t")
 
-        if i > 0:
-            # Calculate offset based on max series_id from all previous studies
-            offset = (
-                int(
-                    max(
-                        df["series_id"].max()
-                        for df in all_dfs
-                        if "series_id" in df.columns
-                    )
-                )
-                + 1000
-            )  # Add buffer to avoid conflicts
-
-        # Apply offset to this study's series IDs
         if i > 0 and "series_id" in df.columns:
-            df = offset_series_ids(df, offset)
+            # Calculate offset based on max series_id from all previous studies
+            # Only process numeric series_id values
+            max_values = []
+            for prev_df in all_dfs:
+                if "series_id" in prev_df.columns:
+                    series_id = prev_df["series_id"]
+                    # Try to get numeric max
+                    if pd.api.types.is_numeric_dtype(series_id):
+                        max_values.append(series_id.max())
+                    else:
+                        # For mixed types, extract numeric values
+                        numeric_ids = pd.to_numeric(series_id, errors="coerce")
+                        if numeric_ids.notna().any():
+                            max_values.append(numeric_ids.max())
+
+            if max_values:
+                offset = int(max(max_values)) + 1000  # Add buffer to avoid conflicts
+                # Apply offset to this study's series IDs
+                df = offset_series_ids(df, offset)
 
         # Add study_uid column to track which study each series came from
         df["study_uid"] = info["study_uid"]
