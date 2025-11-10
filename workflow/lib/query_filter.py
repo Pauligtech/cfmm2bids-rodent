@@ -112,7 +112,7 @@ def remap_sessions_by_date(
         Step size for rounding (e.g. 6 for 6 months).
     time_to_label : dict, optional
         Mapping from numeric rounded time (e.g. 0, 6, 12) to label
-        (e.g. '0m', '6mo', '12mo'). If None, uses default mapping
+        (e.g. '0m', '6m', '12m'). If None, uses default mapping
         with numeric labels (e.g., '0m', '6m', '12m').
     reference_col : str, optional
         Name of column containing reference date (e.g., 'PatientBirthDate').
