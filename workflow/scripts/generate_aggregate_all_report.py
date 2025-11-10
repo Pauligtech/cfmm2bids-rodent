@@ -255,7 +255,7 @@ def create_html_report(
     html_parts.append("<h2>Overall Statistics</h2>")
 
     if session_stats:
-        n_subjects = len(set(s["subject"] for s in session_stats))
+        n_subjects = len({s["subject"] for s in session_stats})
         n_sessions = len(session_stats)
         total_series = sum(s["n_series"] for s in session_stats)
         total_unmapped = sum(s["n_unmapped"] for s in session_stats)
