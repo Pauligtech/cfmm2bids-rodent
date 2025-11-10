@@ -81,13 +81,20 @@ def remap_sessions_by_date(
     units="months",
     round_step=6,
     time_to_label=None,
+    reference_col=None,
+    reference_format="%Y%m%d",
+    zero_pad=False,
 ):
     """
     Remap session IDs based on study date ordering with time intervals.
 
     This function takes a dataframe with subject and session columns, computes
-    time differences from baseline (first session per subject), rounds them to
-    specified intervals, and remaps the session column to meaningful labels.
+    time differences from a reference date, rounds them to specified intervals,
+    and remaps the session column to meaningful labels.
+
+    The reference date can be either:
+    - The first session per subject (baseline, when reference_col is None)
+    - A specific date column (e.g., PatientBirthDate for age at scan)
 
     Parameters
     ----------
@@ -105,8 +112,17 @@ def remap_sessions_by_date(
         Step size for rounding (e.g. 6 for 6 months).
     time_to_label : dict, optional
         Mapping from numeric rounded time (e.g. 0, 6, 12) to label
-        (e.g. 'baseline', '6mo', '12mo'). If None, uses default mapping
-        with baseline at 0 and other values as numeric labels.
+        (e.g. '0m', '6m', '12m'). If None, uses default mapping
+        with numeric labels (e.g., '0m', '6m', '12m').
+    reference_col : str, optional
+        Name of column containing reference date (e.g., 'PatientBirthDate').
+        If None, uses first session per subject as reference (baseline).
+    reference_format : str, default='%Y%m%d'
+        Format of reference_col if string (e.g. '%Y%m%d').
+    zero_pad : bool, default=False
+        If True, zero-pad session labels to the width of the largest number.
+        For example, if the largest value is 100, labels will be '000m', '006m', '012m', etc.
+        If False, labels will be '0m', '6m', '12m', etc.
 
     Returns
     -------
@@ -129,11 +145,25 @@ def remap_sessions_by_date(
     # Sort by subject and date
     temp_df = temp_df.sort_values([subject_col, "session_date"])
 
-    # Compute difference in days from first session per subject
-    diff_days = (
-        temp_df["session_date"]
-        - temp_df.groupby(subject_col)["session_date"].transform("first")
-    ).dt.days
+    # Determine reference date based on reference_col parameter
+    if reference_col is None:
+        # Use first session per subject (baseline behavior)
+        reference_date = temp_df.groupby(subject_col)["session_date"].transform("first")
+    else:
+        # Use specified reference column (e.g., PatientBirthDate)
+        if reference_col not in df.columns:
+            raise ValueError(f"reference_col '{reference_col}' not found in dataframe")
+
+        # Convert reference col to datetime if needed
+        if not np.issubdtype(df[reference_col].dtype, np.datetime64):
+            reference_date = pd.to_datetime(
+                df[reference_col], format=reference_format
+            ).reindex(temp_df.index)
+        else:
+            reference_date = df[reference_col].reindex(temp_df.index)
+
+    # Compute difference in days from reference date
+    diff_days = (temp_df["session_date"] - reference_date).dt.days
 
     # Convert to desired units
     if units == "days":
@@ -150,10 +180,30 @@ def remap_sessions_by_date(
 
     # Apply label mapping
     if time_to_label is None:
-        time_to_label = {0: "baseline"}  # default minimal mapping
-    time_label = time_rounded.map(time_to_label).fillna(
-        time_rounded.astype(int).astype(str) + units[0]
-    )
+        # Use default numeric labels with unit suffix (e.g., '0m', '6m', '12m')
+        # or with zero-padding if requested (e.g., '000m', '006m', '012m')
+        time_to_label = {}
+
+    # Map custom labels first, then fill remaining with default labels
+    time_label = time_rounded.map(time_to_label)
+
+    # For unmapped values, create default labels
+    unmapped_mask = time_label.isna()
+    if unmapped_mask.any():
+        time_rounded_int = time_rounded.astype(int)
+
+        if zero_pad:
+            # Calculate the width needed for zero-padding
+            max_value = time_rounded_int.max()
+            width = len(str(max_value))
+            # Create zero-padded labels
+            default_labels = time_rounded_int.astype(str).str.zfill(width) + units[0]
+        else:
+            # Create regular labels without padding
+            default_labels = time_rounded_int.astype(str) + units[0]
+
+        # Fill in the unmapped values with default labels
+        time_label = time_label.fillna(default_labels)
 
     # Remap the session column in the original dataframe
     df[session_col] = time_label
@@ -182,6 +232,9 @@ def post_filter(df, post_filter_specs):
             units=remap_config.get("units", "months"),
             round_step=remap_config.get("round_step", 6),
             time_to_label=remap_config.get("time_to_label"),
+            reference_col=remap_config.get("reference_col"),
+            reference_format=remap_config.get("reference_format", "%Y%m%d"),
+            zero_pad=remap_config.get("zero_pad", False),
         )
 
     return df

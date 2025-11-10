@@ -64,12 +64,27 @@ study_filter_specs:
     enable: true
     units: 'months'
     round_step: 6
-      #    time_to_label:
-      #      0: 'baseline'
-      #      6: '6mo'
-      #      12: '12mo'
-      #      18: '18mo'
-      #      24: '24mo' 
+    # Default behavior: Time since first session (baseline mode)
+    # Sessions labeled as '0m', '6m', '12m', etc.
+    
+    # Zero-pad session labels (optional, default: false)
+    # Set to true to ensure proper alphanumeric sorting of sessions
+    # Example: '00m', '06m', '12m' instead of '0m', '6m', '12m'
+    # zero_pad: false
+    
+    # Alternative: Calculate age at scan using birth date
+    # Uncomment the following lines to use PatientBirthDate as reference:
+    # reference_col: 'PatientBirthDate'
+    # reference_format: '%Y%m%d'
+    
+    # Custom label mapping (optional)
+    # If you prefer custom labels like 'baseline' instead of '0m':
+    # time_to_label:
+    #   0: 'baseline'
+    #   6: '6mo'
+    #   12: '12mo'
+    #   18: '18mo'
+    #   24: '24mo' 
         
 
 # 3. download

@@ -126,6 +126,14 @@ search_specs:
   #       source: StudyDate
 
 
+
+# additional options to pass to cfmm query_metadata, e.g. to include additional
+# columns in the metadata based on specific dicom tags (like PatientBirthDate below)
+query_kwargs:
+  additional_tags:
+    "00100030": PatientBirthDate
+ 
+
 # ============================================================================
 # 2. FILTER STAGE - Post-filter queried studies
 # ============================================================================
@@ -154,7 +162,11 @@ study_filter_specs:
   # This feature automatically remaps session IDs to time-based labels
   # based on the temporal ordering of study dates for each subject.
   # Useful for longitudinal studies where you want consistent session labels
-  # like 'baseline', '6mo', '12mo' instead of arbitrary date strings.
+  # like '0m', '6m', '12m' instead of arbitrary date strings.
+  #
+  # Two modes are supported:
+  # 1. Time since baseline (default): Uses first session per subject as reference
+  # 2. Age at scan: Uses a date column like PatientBirthDate as reference
   remap_sessions_by_date:
     # Enable/disable session remapping (REQUIRED if section is present)
     enable: false
@@ -172,13 +184,32 @@ study_filter_specs:
     
     # Rounding step for time intervals (OPTIONAL, default: 6)
     # For example, with units='months' and round_step=6:
-    #   - 0-3 months → baseline (0)
-    #   - 3-9 months → 6 months (6)
-    #   - 9-15 months → 12 months (12)
+    #   - 0-3 months → 0m
+    #   - 3-9 months → 6m
+    #   - 9-15 months → 12m
     # round_step: 6
     
+    # Zero-pad session labels (OPTIONAL, default: false)
+    # If true, pads session labels with leading zeros to the width of the largest number.
+    # For example, if the maximum value is 100 months:
+    #   - With zero_pad=false: '0m', '6m', '12m', '100m'
+    #   - With zero_pad=true: '000m', '006m', '012m', '100m'
+    # This is useful for ensuring proper alphanumeric sorting of session labels.
+    # zero_pad: false
+    
+    # Reference date column (OPTIONAL)
+    # If not specified, uses first session per subject as reference (baseline mode)
+    # If specified, uses that column as reference date (e.g., for age at scan)
+    # Example: 'PatientBirthDate' to calculate age at time of scan
+    # reference_col: 'PatientBirthDate'
+    
+    # Format of reference date column if stored as strings (OPTIONAL, default: '%Y%m%d')
+    # Only used when reference_col is specified
+    # reference_format: '%Y%m%d'
+    
     # Mapping from numeric time intervals to session labels (OPTIONAL)
-    # If not specified, uses 'baseline' for 0 and generates labels like '6m', '12m'
+    # If not specified, generates labels like '0m', '6m', '12m' automatically
+    # Custom mapping example (e.g., for time since baseline):
     # time_to_label:
     #   0: 'baseline'
     #   6: '6mo'

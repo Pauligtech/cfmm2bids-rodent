@@ -14,6 +14,7 @@ search_specs:
         sanitize: true
       session:
         source: StudyDate
+
   - dicom_query:
       study_description: Menon^*
       study_date: 20230101-
@@ -25,7 +26,11 @@ search_specs:
         sanitize: true
       session:
         source: StudyDate
-   
+ 
+query_kwargs:
+  additional_tags:
+    "00100030": PatientBirthDate
+  
 
 
 # 2. filter
@@ -43,11 +48,20 @@ study_filter_specs:
     units: 'months'
     
     # Rounding step for time intervals (OPTIONAL, default: 6)
-    # For example, with units='months' and round_step=6:
-    #   - 0-3 months → baseline (0)
-    #   - 3-9 months → 6 months (6)
-    #   - 9-15 months → 12 months (12)
+    # For example, with units='months' and round_step=1:
+    #   - Sessions will be labeled by rounded month intervals (0m, 1m, 2m, etc.)
     round_step: 1
+    
+    # Zero-pad session labels (OPTIONAL, default: false)
+    # If true, pads session labels with leading zeros for proper alphanumeric sorting
+    # Example: '00m', '06m', '12m' instead of '0m', '6m', '12m'
+    # zero_pad: false
+    
+    # Reference date mode (OPTIONAL)
+    # Default (commented out): Uses first session per subject as reference (baseline mode)
+    # Alternative: Use PatientBirthDate to calculate age at scan
+    # reference_col: 'PatientBirthDate'
+    # reference_format: '%Y%m%d'
  
 # 3. download
 cfmm2tar_download_options: '--skip-derived'
