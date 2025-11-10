@@ -83,6 +83,7 @@ def remap_sessions_by_date(
     time_to_label=None,
     reference_col=None,
     reference_format="%Y%m%d",
+    zero_pad=False,
 ):
     """
     Remap session IDs based on study date ordering with time intervals.
@@ -118,6 +119,10 @@ def remap_sessions_by_date(
         If None, uses first session per subject as reference (baseline).
     reference_format : str, default='%Y%m%d'
         Format of reference_col if string (e.g. '%Y%m%d').
+    zero_pad : bool, default=False
+        If True, zero-pad session labels to the width of the largest number.
+        For example, if the largest value is 100, labels will be '000m', '006m', '012m', etc.
+        If False, labels will be '0m', '6m', '12m', etc.
 
     Returns
     -------
@@ -176,10 +181,29 @@ def remap_sessions_by_date(
     # Apply label mapping
     if time_to_label is None:
         # Use default numeric labels with unit suffix (e.g., '0m', '6m', '12m')
+        # or with zero-padding if requested (e.g., '000m', '006m', '012m')
         time_to_label = {}
-    time_label = time_rounded.map(time_to_label).fillna(
-        time_rounded.astype(int).astype(str) + units[0]
-    )
+
+    # Map custom labels first, then fill remaining with default labels
+    time_label = time_rounded.map(time_to_label)
+
+    # For unmapped values, create default labels
+    unmapped_mask = time_label.isna()
+    if unmapped_mask.any():
+        time_rounded_int = time_rounded.astype(int)
+
+        if zero_pad:
+            # Calculate the width needed for zero-padding
+            max_value = time_rounded_int.max()
+            width = len(str(max_value))
+            # Create zero-padded labels
+            default_labels = time_rounded_int.astype(str).str.zfill(width) + units[0]
+        else:
+            # Create regular labels without padding
+            default_labels = time_rounded_int.astype(str) + units[0]
+
+        # Fill in the unmapped values with default labels
+        time_label = time_label.fillna(default_labels)
 
     # Remap the session column in the original dataframe
     df[session_col] = time_label
@@ -210,6 +234,7 @@ def post_filter(df, post_filter_specs):
             time_to_label=remap_config.get("time_to_label"),
             reference_col=remap_config.get("reference_col"),
             reference_format=remap_config.get("reference_format", "%Y%m%d"),
+            zero_pad=remap_config.get("zero_pad", False),
         )
 
     return df
