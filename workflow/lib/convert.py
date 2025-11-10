@@ -147,12 +147,13 @@ def merge_dicominfo_files(info_files: list[dict[str, Path]], output_tsv: Path) -
 
         if i > 0:
             # Calculate offset based on max series_id from all previous studies
-            offset = (
+            offset = int(
                 max(
-                    df["series_id"].max() for df in all_dfs if "series_id" in df.columns
+                    df["series_id"].max()
+                    for df in all_dfs
+                    if "series_id" in df.columns
                 )
-                + 1000  # Add buffer to avoid conflicts
-            )
+            ) + 1000  # Add buffer to avoid conflicts
 
         # Apply offset to this study's series IDs
         if i > 0 and "series_id" in df.columns:
@@ -256,6 +257,79 @@ def merge_bids_directories(
     logger.info(f"Merged BIDS directory created at {output_bids_dir}")
 
 
+def process_single_study_heudiconv(
+    dicoms_dir: Path,
+    subject: str,
+    session: str,
+    heuristic: Path,
+    dcmconfig_json: Path,
+    heudiconv_options: str,
+    output_bids_dir: Path,
+    output_info_dir: Path,
+    temp_dir: Path,
+) -> None:
+    """
+    Process a single tar file with heudiconv.
+
+    Args:
+        dicoms_dir: Directory containing tar file
+        subject: Subject ID
+        session: Session ID
+        heuristic: Path to heudiconv heuristic file
+        dcmconfig_json: Path to dcm2niix config JSON
+        heudiconv_options: Additional heudiconv options
+        output_bids_dir: Output BIDS directory
+        output_info_dir: Output directory for info files
+        temp_dir: Temporary directory for processing
+    """
+    logger.info("Single-study processing")
+    logger.info("Running heudiconv on single tar file\n")
+
+    # Find tar file
+    tar_files = find_tar_files(dicoms_dir)
+
+    if not tar_files:
+        raise FileNotFoundError(f"No tar files found in {dicoms_dir}")
+
+    if len(tar_files) > 1:
+        raise ValueError(
+            f"Expected single tar file but found {len(tar_files)} tar files. "
+            "Use process_multi_study_heudiconv instead."
+        )
+
+    tar_file = tar_files[0]
+
+    # Process the tar file
+    info = run_heudiconv_for_study(
+        tar_file,
+        temp_dir,
+        subject,
+        session,
+        heuristic,
+        dcmconfig_json,
+        heudiconv_options,
+    )
+
+    # Copy outputs to final locations
+    output_info_dir.mkdir(parents=True, exist_ok=True)
+
+    shutil.copy2(info["auto_txt"], output_info_dir / f"sub-{subject}_ses-{session}_auto.txt")
+    shutil.copy2(info["dicominfo_tsv"], output_info_dir / f"sub-{subject}_ses-{session}_dicominfo.tsv")
+    shutil.copy2(info["filegroup_json"], output_info_dir / f"sub-{subject}_ses-{session}_filegroup.json")
+
+    # Copy BIDS directory
+    output_bids_dir.mkdir(parents=True, exist_ok=True)
+    if info["bids_dir"].exists():
+        for src_file in info["bids_dir"].rglob("*"):
+            if src_file.is_file():
+                rel_path = src_file.relative_to(info["bids_dir"])
+                dst_file = output_bids_dir / rel_path
+                dst_file.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(src_file, dst_file)
+
+    logger.info("Single-study heudiconv processing completed successfully!")
+
+
 def process_multi_study_heudiconv(
     dicoms_dir: Path,
     subject: str,
@@ -281,6 +355,9 @@ def process_multi_study_heudiconv(
         output_info_dir: Output directory for info files
         temp_dir: Temporary directory for processing
     """
+    logger.info("Multi-study processing detected")
+    logger.info("Running multi-study heudiconv processing\n")
+
     # Find tar files
     tar_files = find_tar_files(dicoms_dir)
 
@@ -290,7 +367,7 @@ def process_multi_study_heudiconv(
     if len(tar_files) == 1:
         logger.warning(
             "Only one tar file found. This function is intended for multiple studies. "
-            "Consider using the standard heudiconv processing instead."
+            "Consider using process_single_study_heudiconv instead."
         )
 
     logger.info(f"Found {len(tar_files)} tar file(s) to process")

@@ -14,3 +14,4 @@ qc/
 logs/
 .snakemake/
 temp/
+bids-temp/
