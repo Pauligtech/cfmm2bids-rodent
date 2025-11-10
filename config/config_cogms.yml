@@ -1,5 +1,6 @@
-credentials_file: ~/.uwo_credentials
-final_bids_dir: "bids"
+credentials_file: ~/.uwo_credentials.bd
+final_bids_dir: "/nfs/scratch/akhan488/cogms-cfmm2bids/bids"
+
 # 1. query
 search_specs:
   - dicom_query:
@@ -41,23 +42,13 @@ search_specs:
 
 # 2. filter
 study_filter_specs:
-  manual_baseline_dates:
-    103: 2017-08-03
-    104: 2017-08-24
-    105: 2017-09-01
-    106: 2017-10-05
-    107: 2017-10-26
-    110: 2019-01-14
-    113: 2017-11-29
-    115: 2018-01-02
-    301: 2017-10-06
-    303: 2017-11-06
   include:
   exclude:
 #    - PatientID == '23.05.26-10:43:49-DST-1.3.12.2.1107.5.2.0.18932'
     - PatientID == 'TriggerTest'
     - subject != subject # if subject is nan 
-  
+    - StudyInstanceUID == '1.3.12.2.1107.5.2.34.18932.30000018071014504151500000004' #physio log only
+
   # Optional: Remap sessions based on study date ordering
   # Uncomment and configure to use time-based session labels
   remap_sessions_by_date:
@@ -79,12 +70,8 @@ study_filter_specs:
     
     # Custom label mapping (optional)
     # If you prefer custom labels like 'baseline' instead of '0m':
-    # time_to_label:
-    #   0: 'baseline'
-    #   6: '6mo'
-    #   12: '12mo'
-    #   18: '18mo'
-    #   24: '24mo' 
+    time_to_label:
+      0: 'baseline'
         
 
 # 3. download
@@ -108,13 +95,11 @@ post_convert_fixes:
     action: update_json
     updates:
       NewPhaseEncodingDirection: "j-"
-  - name: reorient_nifti
-    pattern: "anat/*T1w.nii.gz"
-    action: fix_orientation
-#intermediate output folders
+
+# intermediate output folders
 stages:
   query: "results/0_query"
   filter: "results/1_filter"
-  download: "results/2_download"
-  convert: "results/3_convert"
-  fix: "results/4_fix"
+  download: "/nfs/scratch/akhan488/cogms-cfmm2bids/results/2_download"
+  convert: "/nfs/scratch/akhan488/cogms-cfmm2bids/results/3_convert"
+  fix: "/nfs/scratch/akhan488/cogms-cfmm2bids/results/4_fix"
