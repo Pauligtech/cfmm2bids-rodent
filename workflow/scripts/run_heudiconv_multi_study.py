@@ -67,7 +67,12 @@ def run_heudiconv_for_study(
 
     logger.info(f"Extracting {tar_file.name}...")
     with tarfile.open(tar_file, "r") as tar:
-        tar.extractall(extract_dir)
+        # Use safe extraction (Python 3.12+) or regular extraction for older versions
+        try:
+            tar.extractall(extract_dir, filter="data")
+        except TypeError:
+            # Fallback for Python < 3.12 without filter parameter
+            tar.extractall(extract_dir)
 
     # Run heudiconv on this study's DICOMs
     bids_output = study_temp_dir / "bids"
@@ -151,12 +156,16 @@ def merge_dicominfo_files(info_files: list[dict[str, Path]], output_tsv: Path) -
         df = pd.read_csv(info["dicominfo_tsv"], sep="\t")
 
         if i > 0:
-            # Calculate offset based on max series_id from previous studies
-            if all_dfs:
-                prev_max = max(
+            # Calculate offset based on max series_id from all previous studies
+            offset = (
+                max(
                     df["series_id"].max() for df in all_dfs if "series_id" in df.columns
                 )
-                offset = prev_max + 1000  # Add buffer to avoid conflicts
+                + 1000  # Add buffer to avoid conflicts
+            )
+
+        # Apply offset to this study's series IDs
+        if i > 0 and "series_id" in df.columns:
             df = offset_series_ids(df, offset)
 
         # Add study_uid column to track which study each series came from
