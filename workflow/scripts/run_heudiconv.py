@@ -5,26 +5,17 @@ This script handles both single-study and multi-study cases automatically.
 It is called via the script: directive from the heudiconv rule.
 """
 
-import logging
-import sys
 from pathlib import Path
 
-# Add workflow lib to path
-sys.path.insert(0, str(Path(workflow.basedir) / "lib"))
-
-from convert import (
+from lib.convert import (
     find_tar_files,
     process_multi_study_heudiconv,
     process_single_study_heudiconv,
 )
+from lib.utils import setup_logger
 
-# Setup logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(levelname)s: %(message)s",
-    handlers=[logging.FileHandler(snakemake.log[0]), logging.StreamHandler()],
-)
-logger = logging.getLogger(__name__)
+log_file = snakemake.log[0] if snakemake.log else None
+logger = setup_logger(log_file)
 
 
 def is_multi_study_case(dicoms_dir: Path) -> bool:
