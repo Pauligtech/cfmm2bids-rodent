@@ -124,10 +124,29 @@ def run_heudiconv_for_study(
 
 
 def offset_series_ids(df: pd.DataFrame, offset: int) -> pd.DataFrame:
-    """Offset series_id column in dicominfo dataframe."""
+    """Offset series_id column in dicominfo dataframe.
+
+    Only offsets numeric series_id values. String values are left unchanged.
+    """
     df = df.copy()
     if "series_id" in df.columns:
-        df["series_id"] = df["series_id"] + offset
+        # Check if series_id is numeric
+        series_id = df["series_id"]
+        if pd.api.types.is_numeric_dtype(series_id):
+            df["series_id"] = series_id + offset
+        else:
+            # For mixed or string types, only offset numeric values
+            try:
+                # Try to convert to numeric, coercing errors to NaN
+                numeric_ids = pd.to_numeric(series_id, errors="coerce")
+                # Only offset where conversion succeeded (not NaN)
+                mask = numeric_ids.notna()
+                df.loc[mask, "series_id"] = numeric_ids[mask] + offset
+            except Exception:
+                # If conversion fails entirely, leave series_id unchanged
+                logger.warning(
+                    "Could not offset series_id values - column contains non-numeric data"
+                )
     return df
 
 
@@ -135,7 +154,7 @@ def merge_dicominfo_files(info_files: list[dict[str, Path]], output_tsv: Path) -
     """
     Merge dicominfo.tsv files with series ID offsetting.
 
-    Each study's series IDs are offset to avoid conflicts.
+    Each study's series IDs are offset to avoid conflicts (only for numeric IDs).
     """
     logger.info("Merging dicominfo.tsv files...")
 
@@ -145,18 +164,26 @@ def merge_dicominfo_files(info_files: list[dict[str, Path]], output_tsv: Path) -
     for i, info in enumerate(info_files):
         df = pd.read_csv(info["dicominfo_tsv"], sep="\t")
 
-        if i > 0:
-            # Calculate offset based on max series_id from all previous studies
-            offset = (
-                max(
-                    df["series_id"].max() for df in all_dfs if "series_id" in df.columns
-                )
-                + 1000  # Add buffer to avoid conflicts
-            )
-
-        # Apply offset to this study's series IDs
         if i > 0 and "series_id" in df.columns:
-            df = offset_series_ids(df, offset)
+            # Calculate offset based on max series_id from all previous studies
+            # Only process numeric series_id values
+            max_values = []
+            for prev_df in all_dfs:
+                if "series_id" in prev_df.columns:
+                    series_id = prev_df["series_id"]
+                    # Try to get numeric max
+                    if pd.api.types.is_numeric_dtype(series_id):
+                        max_values.append(series_id.max())
+                    else:
+                        # For mixed types, extract numeric values
+                        numeric_ids = pd.to_numeric(series_id, errors="coerce")
+                        if numeric_ids.notna().any():
+                            max_values.append(numeric_ids.max())
+
+            if max_values:
+                offset = int(max(max_values)) + 1000  # Add buffer to avoid conflicts
+                # Apply offset to this study's series IDs
+                df = offset_series_ids(df, offset)
 
         # Add study_uid column to track which study each series came from
         df["study_uid"] = info["study_uid"]
@@ -181,10 +208,26 @@ def merge_filegroup_files(info_files: list[dict[str, Path]], output_json: Path) 
     for info in info_files:
         with open(info["filegroup_json"]) as f:
             data = json.load(f)
-            # Add study_uid to each entry
-            for entry in data:
-                entry["study_uid"] = info["study_uid"]
-            merged_data.extend(data)
+            # Handle different possible JSON structures
+            if isinstance(data, list):
+                # If it's a list, process each entry
+                for entry in data:
+                    if isinstance(entry, dict):
+                        # If entry is a dict, add study_uid
+                        entry["study_uid"] = info["study_uid"]
+                        merged_data.append(entry)
+                    else:
+                        # If entry is not a dict (e.g., string), wrap it
+                        merged_data.append(
+                            {"value": entry, "study_uid": info["study_uid"]}
+                        )
+            elif isinstance(data, dict):
+                # If it's a dict, add study_uid and append
+                data["study_uid"] = info["study_uid"]
+                merged_data.append(data)
+            else:
+                # For other types, wrap in dict
+                merged_data.append({"value": data, "study_uid": info["study_uid"]})
 
     with open(output_json, "w") as f:
         json.dump(merged_data, f, indent=2)
@@ -256,6 +299,87 @@ def merge_bids_directories(
     logger.info(f"Merged BIDS directory created at {output_bids_dir}")
 
 
+def process_single_study_heudiconv(
+    dicoms_dir: Path,
+    subject: str,
+    session: str,
+    heuristic: Path,
+    dcmconfig_json: Path,
+    heudiconv_options: str,
+    output_bids_dir: Path,
+    output_info_dir: Path,
+    temp_dir: Path,
+) -> None:
+    """
+    Process a single tar file with heudiconv.
+
+    Args:
+        dicoms_dir: Directory containing tar file
+        subject: Subject ID
+        session: Session ID
+        heuristic: Path to heudiconv heuristic file
+        dcmconfig_json: Path to dcm2niix config JSON
+        heudiconv_options: Additional heudiconv options
+        output_bids_dir: Output BIDS directory
+        output_info_dir: Output directory for info files
+        temp_dir: Temporary directory for processing
+    """
+    logger.info("Single-study processing")
+    logger.info("Running heudiconv on single tar file\n")
+
+    # Find tar file
+    tar_files = find_tar_files(dicoms_dir)
+
+    if not tar_files:
+        raise FileNotFoundError(f"No tar files found in {dicoms_dir}")
+
+    if len(tar_files) > 1:
+        raise ValueError(
+            f"Expected single tar file but found {len(tar_files)} tar files. "
+            "Use process_multi_study_heudiconv instead."
+        )
+
+    tar_file = tar_files[0]
+
+    # Process the tar file
+    info = run_heudiconv_for_study(
+        tar_file,
+        temp_dir,
+        subject,
+        session,
+        heuristic,
+        dcmconfig_json,
+        heudiconv_options,
+    )
+
+    # Copy outputs to final locations
+    output_info_dir.mkdir(parents=True, exist_ok=True)
+
+    shutil.copy2(
+        info["auto_txt"], output_info_dir / f"sub-{subject}_ses-{session}_auto.txt"
+    )
+    shutil.copy2(
+        info["dicominfo_tsv"],
+        output_info_dir / f"sub-{subject}_ses-{session}_dicominfo.tsv",
+    )
+    shutil.copy2(
+        info["filegroup_json"],
+        output_info_dir / f"sub-{subject}_ses-{session}_filegroup.json",
+    )
+
+    # Copy BIDS directory
+    output_bids_dir.mkdir(parents=True, exist_ok=True)
+    if info["bids_dir"].exists():
+        for src_file in info["bids_dir"].rglob("*"):
+            if src_file.is_file():
+                rel_path = src_file.relative_to(info["bids_dir"])
+                dst_file = output_bids_dir / rel_path
+                dst_file.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(src_file, dst_file)
+
+    logger.info("Single-study heudiconv processing completed successfully!")
+
+
 def process_multi_study_heudiconv(
     dicoms_dir: Path,
     subject: str,
@@ -281,6 +405,9 @@ def process_multi_study_heudiconv(
         output_info_dir: Output directory for info files
         temp_dir: Temporary directory for processing
     """
+    logger.info("Multi-study processing detected")
+    logger.info("Running multi-study heudiconv processing\n")
+
     # Find tar files
     tar_files = find_tar_files(dicoms_dir)
 
@@ -290,7 +417,7 @@ def process_multi_study_heudiconv(
     if len(tar_files) == 1:
         logger.warning(
             "Only one tar file found. This function is intended for multiple studies. "
-            "Consider using the standard heudiconv processing instead."
+            "Consider using process_single_study_heudiconv instead."
         )
 
     logger.info(f"Found {len(tar_files)} tar file(s) to process")

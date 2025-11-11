@@ -219,10 +219,6 @@ rule heudiconv:
         heudiconv_options=config["heudiconv_options"],
         out_info_dir=lambda wildcards: stage_convert
         / "info/sub-{subject}/ses-{session}".format(**wildcards),
-        out_bids=stage_convert / "bids",
-        temp_dir=lambda wildcards: Path(
-            f"temp/heudiconv/sub-{wildcards.subject}_ses-{wildcards.session}"
-        ),
     output:
         bids_subj_dir=directory(stage_convert / "bids/sub-{subject}/ses-{session}"),
         auto_txt=stage_convert
