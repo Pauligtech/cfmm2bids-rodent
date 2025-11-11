@@ -118,8 +118,6 @@ rule subject_report:
     input:
         series_tsv=stage_convert
         / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series.tsv",
-        filegroup_json=stage_convert
-        / "info/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_filegroup.json",
         provenance_json=stage_fix
         / "info/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_provenance.json",
     output:
@@ -225,8 +223,6 @@ rule heudiconv:
         / "info/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_auto.txt",
         dicominfo_tsv=stage_convert
         / "info/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_dicominfo.tsv",
-        filegroup_json=stage_convert
-        / "info/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_filegroup.json",
     log:
         "logs/heudiconv/sub-{subject}_ses-{session}.log",
     shadow:
@@ -259,7 +255,6 @@ rule generate_convert_qc_figs:
     input:
         auto_txt=rules.heudiconv.output.auto_txt,
         dicominfo_tsv=rules.heudiconv.output.dicominfo_tsv,
-        filegroup_json=rules.heudiconv.output.filegroup_json,
     output:
         series_list=stage_convert
         / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series.svg",

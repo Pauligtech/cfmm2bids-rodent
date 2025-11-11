@@ -3,9 +3,8 @@ Generate aggregate HTML report for all sessions.
 
 This script aggregates:
 1. TSV data from heudiconv QC (series.tsv files)
-2. JSON metadata from heudiconv (filegroup.json)
-3. JSON provenance from post_convert_fix
-4. Validator results (JSON from convert and fix stages)
+2. JSON provenance from post_convert_fix
+3. Validator results (JSON from convert and fix stages)
 
 The report includes:
 - Overview statistics
@@ -129,15 +128,12 @@ def load_json_files(json_files, file_type="JSON"):
     return all_data
 
 
-def create_html_report(
-    series_df, filegroup_data, provenance_data, convert_validator, fix_validator
-):
+def create_html_report(series_df, provenance_data, convert_validator, fix_validator):
     """
     Create HTML report from aggregated data.
 
     Args:
         series_df: DataFrame with aggregated series data
-        filegroup_data: List of filegroup JSON data
         provenance_data: List of provenance JSON data
         convert_validator: Validator JSON from convert stage
         fix_validator: Validator JSON from fix stage
@@ -416,32 +412,6 @@ def create_html_report(
 
         html_parts.append("</div>")
 
-    # Filegroup Information (collapsible)
-    if filegroup_data:
-        html_parts.append('<div class="summary-box">')
-        html_parts.append("<h2>Heudiconv Filegroup Metadata</h2>")
-        html_parts.append(
-            "<p>Click to expand filegroup data for each subject/session:</p>"
-        )
-
-        for fg in filegroup_data:
-            subj = fg.get("subject", "unknown")
-            sess = fg.get("session", "unknown")
-            data = fg.get("data", {})
-
-            html_parts.append("<details>")
-            html_parts.append(
-                f"<summary>sub-{html.escape(subj)} / ses-{html.escape(sess)}</summary>"
-            )
-            html_parts.append("<div>")
-            html_parts.append('<div class="json-viewer">')
-            html_parts.append(f"<pre>{html.escape(json.dumps(data, indent=2))}</pre>")
-            html_parts.append("</div>")
-            html_parts.append("</div>")
-            html_parts.append("</details>")
-
-        html_parts.append("</div>")
-
     # Footer
     html_parts.append(
         """
@@ -676,10 +646,6 @@ logger.info("Starting aggregate report generation...")
 series_tsv_files = snakemake.input.series_tsv
 series_df = load_series_tsvs(series_tsv_files)
 
-# Load filegroup JSON files
-filegroup_files = snakemake.input.filegroup_json
-filegroup_data = load_json_files(filegroup_files, "filegroup JSON")
-
 # Load provenance JSON files
 provenance_files = snakemake.input.provenance_json
 provenance_data = load_json_files(provenance_files, "provenance JSON")
@@ -704,7 +670,7 @@ except Exception as e:
 
 # Create HTML report
 html_content = create_html_report(
-    series_df, filegroup_data, provenance_data, convert_validator, fix_validator
+    series_df, provenance_data, convert_validator, fix_validator
 )
 
 # Write output

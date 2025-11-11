@@ -1,13 +1,15 @@
 """Helper functions for DICOM to BIDS conversion with heudiconv."""
 
-import json
+import ast
 import logging
 import shutil
-import subprocess
-import tarfile
+import stat
+from collections import defaultdict
 from pathlib import Path
+from pprint import pprint
 
 import pandas as pd
+from snakemake.shell import shell
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +30,16 @@ def extract_study_uid_from_tar(tar_path: Path) -> str:
     if stem.endswith(".tar"):
         stem = stem[:-4]
     return stem
+
+
+def make_tree_writable(path: Path):
+    """Recursively make files and dirs under `path` writable by owner."""
+    for p in [path] + list(path.rglob("*")):
+        try:
+            mode = p.stat().st_mode
+            p.chmod(mode | stat.S_IWUSR)
+        except Exception as e:
+            logger.info(f"⚠️ Could not make writable: {p} ({e})")
 
 
 def run_heudiconv_for_study(
@@ -51,19 +63,6 @@ def run_heudiconv_for_study(
     study_temp_dir = temp_dir / f"study_{study_uid}"
     study_temp_dir.mkdir(parents=True, exist_ok=True)
 
-    # Extract tar file to temp directory
-    extract_dir = study_temp_dir / "dicoms"
-    extract_dir.mkdir(parents=True, exist_ok=True)
-
-    logger.info(f"Extracting {tar_file.name}...")
-    with tarfile.open(tar_file, "r") as tar:
-        # Use safe extraction (Python 3.12+) or regular extraction for older versions
-        try:
-            tar.extractall(extract_dir, filter="data")
-        except TypeError:
-            # Fallback for Python < 3.12 without filter parameter
-            tar.extractall(extract_dir)
-
     # Run heudiconv on this study's DICOMs
     bids_output = study_temp_dir / "bids"
     bids_output.mkdir(parents=True, exist_ok=True)
@@ -71,7 +70,7 @@ def run_heudiconv_for_study(
     cmd = [
         "heudiconv",
         "--files",
-        str(extract_dir),
+        str(tar_file),
         "-c",
         "dcm2niix",
         "-o",
@@ -93,12 +92,13 @@ def run_heudiconv_for_study(
         cmd.extend(heudiconv_options.split())
 
     logger.info(f"Running heudiconv: {' '.join(cmd)}")
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    shell(" ".join(cmd))
+    #    result = subprocess.run(cmd, capture_output=True, text=True)
 
-    if result.returncode != 0:
-        logger.error(f"heudiconv failed for study {study_uid}:")
-        logger.error(result.stderr)
-        raise RuntimeError(f"heudiconv failed for study {study_uid}")
+    #   if result.returncode != 0:
+    #       logger.error(f"heudiconv failed for study {study_uid}:")
+    #       logger.error(result.stderr)
+    #       raise RuntimeError(f"heudiconv failed for study {study_uid}")
 
     # Locate the heudiconv info files
     heudiconv_info_dir = (
@@ -107,10 +107,9 @@ def run_heudiconv_for_study(
 
     auto_txt = heudiconv_info_dir / f"{subject}_ses-{session}.auto.txt"
     dicominfo_tsv = heudiconv_info_dir / f"dicominfo_ses-{session}.tsv"
-    filegroup_json = heudiconv_info_dir / f"filegroup_ses-{session}.json"
 
     # Check that files exist
-    for f in [auto_txt, dicominfo_tsv, filegroup_json]:
+    for f in [auto_txt, dicominfo_tsv]:
         if not f.exists():
             raise FileNotFoundError(f"Expected heudiconv output file not found: {f}")
 
@@ -119,35 +118,7 @@ def run_heudiconv_for_study(
         "bids_dir": bids_output / f"sub-{subject}" / f"ses-{session}",
         "auto_txt": auto_txt,
         "dicominfo_tsv": dicominfo_tsv,
-        "filegroup_json": filegroup_json,
     }
-
-
-def offset_series_ids(df: pd.DataFrame, offset: int) -> pd.DataFrame:
-    """Offset series_id column in dicominfo dataframe.
-
-    Only offsets numeric series_id values. String values are left unchanged.
-    """
-    df = df.copy()
-    if "series_id" in df.columns:
-        # Check if series_id is numeric
-        series_id = df["series_id"]
-        if pd.api.types.is_numeric_dtype(series_id):
-            df["series_id"] = series_id + offset
-        else:
-            # For mixed or string types, only offset numeric values
-            try:
-                # Try to convert to numeric, coercing errors to NaN
-                numeric_ids = pd.to_numeric(series_id, errors="coerce")
-                # Only offset where conversion succeeded (not NaN)
-                mask = numeric_ids.notna()
-                df.loc[mask, "series_id"] = numeric_ids[mask] + offset
-            except Exception:
-                # If conversion fails entirely, leave series_id unchanged
-                logger.warning(
-                    "Could not offset series_id values - column contains non-numeric data"
-                )
-    return df
 
 
 def merge_dicominfo_files(info_files: list[dict[str, Path]], output_tsv: Path) -> None:
@@ -159,31 +130,9 @@ def merge_dicominfo_files(info_files: list[dict[str, Path]], output_tsv: Path) -
     logger.info("Merging dicominfo.tsv files...")
 
     all_dfs = []
-    offset = 0
 
-    for i, info in enumerate(info_files):
+    for _i, info in enumerate(info_files):
         df = pd.read_csv(info["dicominfo_tsv"], sep="\t")
-
-        if i > 0 and "series_id" in df.columns:
-            # Calculate offset based on max series_id from all previous studies
-            # Only process numeric series_id values
-            max_values = []
-            for prev_df in all_dfs:
-                if "series_id" in prev_df.columns:
-                    series_id = prev_df["series_id"]
-                    # Try to get numeric max
-                    if pd.api.types.is_numeric_dtype(series_id):
-                        max_values.append(series_id.max())
-                    else:
-                        # For mixed types, extract numeric values
-                        numeric_ids = pd.to_numeric(series_id, errors="coerce")
-                        if numeric_ids.notna().any():
-                            max_values.append(numeric_ids.max())
-
-            if max_values:
-                offset = int(max(max_values)) + 1000  # Add buffer to avoid conflicts
-                # Apply offset to this study's series IDs
-                df = offset_series_ids(df, offset)
 
         # Add study_uid column to track which study each series came from
         df["study_uid"] = info["study_uid"]
@@ -194,47 +143,6 @@ def merge_dicominfo_files(info_files: list[dict[str, Path]], output_tsv: Path) -
     logger.info(f"Merged dicominfo saved to {output_tsv}")
 
 
-def merge_filegroup_files(info_files: list[dict[str, Path]], output_json: Path) -> None:
-    """
-    Merge filegroup.json files.
-
-    Since filegroup.json contains the heudiconv conversion info,
-    we merge all studies' data together.
-    """
-    logger.info("Merging filegroup.json files...")
-
-    merged_data = []
-
-    for info in info_files:
-        with open(info["filegroup_json"]) as f:
-            data = json.load(f)
-            # Handle different possible JSON structures
-            if isinstance(data, list):
-                # If it's a list, process each entry
-                for entry in data:
-                    if isinstance(entry, dict):
-                        # If entry is a dict, add study_uid
-                        entry["study_uid"] = info["study_uid"]
-                        merged_data.append(entry)
-                    else:
-                        # If entry is not a dict (e.g., string), wrap it
-                        merged_data.append(
-                            {"value": entry, "study_uid": info["study_uid"]}
-                        )
-            elif isinstance(data, dict):
-                # If it's a dict, add study_uid and append
-                data["study_uid"] = info["study_uid"]
-                merged_data.append(data)
-            else:
-                # For other types, wrap in dict
-                merged_data.append({"value": data, "study_uid": info["study_uid"]})
-
-    with open(output_json, "w") as f:
-        json.dump(merged_data, f, indent=2)
-
-    logger.info(f"Merged filegroup saved to {output_json}")
-
-
 def merge_auto_txt_files(info_files: list[dict[str, Path]], output_txt: Path) -> None:
     """
     Merge auto.txt files.
@@ -243,15 +151,28 @@ def merge_auto_txt_files(info_files: list[dict[str, Path]], output_txt: Path) ->
     """
     logger.info("Merging auto.txt files...")
 
-    with open(output_txt, "w") as outf:
-        for i, info in enumerate(info_files):
-            if i > 0:
-                outf.write("\n" + "=" * 80 + "\n")
-                outf.write(f"Study: {info['study_uid']}\n")
-                outf.write("=" * 80 + "\n\n")
+    merged = defaultdict(list)
 
-            with open(info["auto_txt"]) as inf:
-                outf.write(inf.read())
+    for _i, info in enumerate(info_files):
+        with open(info["auto_txt"]) as f:
+            text = f.read().strip()
+        try:
+            data = ast.literal_eval(text)
+        except Exception as e:
+            print(f"⚠️ Skipping info['auto_txt']: could not parse ({e})")
+            continue
+
+        for k, v in data.items():
+            if not isinstance(v, list):
+                continue
+            merged[k].extend(
+                [f"{_i}_{series}" for series in v]
+            )  # prepend number for each study
+
+    # --- SAVE RESULT ---
+    with open(output_txt, "w") as f:
+        # pretty-print to make it readable (preserves valid Python syntax)
+        pprint(dict(merged), stream=f, sort_dicts=False, width=120, compact=False)
 
     logger.info(f"Merged auto.txt saved to {output_txt}")
 
@@ -274,6 +195,9 @@ def merge_bids_directories(
             logger.warning(f"BIDS directory not found: {src_dir}")
             continue
 
+        # First make writable before copying, as perms preserved
+        make_tree_writable(src_dir)
+
         # Copy all files from source to destination
         for src_file in src_dir.rglob("*"):
             if src_file.is_file():
@@ -281,17 +205,7 @@ def merge_bids_directories(
                 dst_file = output_bids_dir / rel_path
                 dst_file.parent.mkdir(parents=True, exist_ok=True)
 
-                # If file already exists, add study UID to filename to avoid conflicts
-                if dst_file.exists():
-                    stem = dst_file.stem
-                    suffix = dst_file.suffix
-                    # Handle .nii.gz
-                    if stem.endswith(".nii") and suffix == ".gz":
-                        stem = stem[:-4]
-                        suffix = ".nii.gz"
-                    dst_file = (
-                        dst_file.parent / f"{stem}_study-{info['study_uid']}{suffix}"
-                    )
+                # clobber files
 
                 shutil.copy2(src_file, dst_file)
                 logger.debug(f"Copied {src_file} to {dst_file}")
@@ -361,10 +275,6 @@ def process_single_study_heudiconv(
     shutil.copy2(
         info["dicominfo_tsv"],
         output_info_dir / f"sub-{subject}_ses-{session}_dicominfo.tsv",
-    )
-    shutil.copy2(
-        info["filegroup_json"],
-        output_info_dir / f"sub-{subject}_ses-{session}_filegroup.json",
     )
 
     # Copy BIDS directory
@@ -446,10 +356,6 @@ def process_multi_study_heudiconv(
     merge_dicominfo_files(
         info_files,
         output_info_dir / f"sub-{subject}_ses-{session}_dicominfo.tsv",
-    )
-    merge_filegroup_files(
-        info_files,
-        output_info_dir / f"sub-{subject}_ses-{session}_filegroup.json",
     )
     merge_bids_directories(info_files, output_bids_dir)
 
