@@ -118,8 +118,6 @@ rule subject_report:
     input:
         series_tsv=stage_convert
         / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series.tsv",
-        filegroup_json=stage_convert
-        / "info/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_filegroup.json",
         provenance_json=stage_fix
         / "info/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_provenance.json",
     output:
@@ -203,62 +201,40 @@ rule cfmm2tar:
 
 
 rule heudiconv:
+    """
+    Run heudiconv to convert DICOMs to BIDS format.
+    
+    Automatically handles both single-study and multi-study cases:
+    - Single study: runs heudiconv directly on the DICOM directory
+    - Multiple studies (when merge_duplicate_studies=true): processes each tar file
+      separately with heudiconv, then merges outputs with series ID offsetting
+    """
     input:
         dicoms_dir=rules.cfmm2tar.output.dicoms_dir,
         heuristic=config["heuristic"],
         dcmconfig_json=config["dcmconfig_json"],
     params:
         heudiconv_options=config["heudiconv_options"],
-        in_auto_txt=lambda wildcards: stage_convert
-        / "bids/.heudiconv/{subject}/ses-{session}/info/{subject}_ses-{session}.auto.txt".format(
-            **wildcards
-        ),
-        in_dicominfo_tsv=lambda wildcards: stage_convert
-        / "bids/.heudiconv/{subject}/ses-{session}/info/dicominfo_ses-{session}.tsv".format(
-            **wildcards
-        ),
-        in_filegroup_json=lambda wildcards: stage_convert
-        / "bids/.heudiconv/{subject}/ses-{session}/info/filegroup_ses-{session}.json".format(
-            **wildcards
-        ),
         out_info_dir=lambda wildcards: stage_convert
         / "info/sub-{subject}/ses-{session}".format(**wildcards),
-        out_bids=stage_convert / "bids",
     output:
         bids_subj_dir=directory(stage_convert / "bids/sub-{subject}/ses-{session}"),
         auto_txt=stage_convert
         / "info/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_auto.txt",
         dicominfo_tsv=stage_convert
         / "info/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_dicominfo.tsv",
-        filegroup_json=stage_convert
-        / "info/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_filegroup.json",
     log:
         "logs/heudiconv/sub-{subject}_ses-{session}.log",
     shadow:
         "minimal"
     threads: 16
     resources:
-        mem_mb=8000,
-        runtime=15,
+        mem_mb=16000,
+        runtime=30,
     group:
         "convert"
-    shell:
-        (
-            "heudiconv --files {input.dicoms_dir}"
-            " -c dcm2niix"
-            " -o {params.out_bids}"
-            " -ss {wildcards.session}"
-            " -s {wildcards.subject}"
-            " -f {input.heuristic}"
-            " --bids notop"
-            " --dcmconfig {input.dcmconfig_json}"
-            " --overwrite"
-            " {params.heudiconv_options} &> {log}"
-            " && mkdir -p {params.out_info_dir}"
-            " && cp {params.in_auto_txt} {output.auto_txt}"
-            " && cp {params.in_dicominfo_tsv} {output.dicominfo_tsv}"
-            " && cp {params.in_filegroup_json} {output.filegroup_json}"
-        )
+    script:
+        "scripts/run_heudiconv.py"
 
 
 rule dataset_description_for_convert:
@@ -279,7 +255,6 @@ rule generate_convert_qc_figs:
     input:
         auto_txt=rules.heudiconv.output.auto_txt,
         dicominfo_tsv=rules.heudiconv.output.dicominfo_tsv,
-        filegroup_json=rules.heudiconv.output.filegroup_json,
     output:
         series_list=stage_convert
         / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series.svg",

@@ -3,8 +3,7 @@ Generate subject-specific HTML report for a single session.
 
 This script generates a report for one subject/session including:
 1. TSV data from heudiconv QC (series.tsv file)
-2. JSON metadata from heudiconv (filegroup.json)
-3. JSON provenance from post_convert_fix
+2. JSON provenance from post_convert_fix
 
 The report includes:
 - Overview statistics for this session
@@ -63,7 +62,7 @@ def load_json_file(json_file, file_type="JSON"):
         return None
 
 
-def create_html_report(subject, session, series_df, filegroup_data, provenance_data):
+def create_html_report(subject, session, series_df, provenance_data):
     """
     Create HTML report for a single subject/session.
 
@@ -71,7 +70,6 @@ def create_html_report(subject, session, series_df, filegroup_data, provenance_d
         subject: Subject ID
         session: Session ID
         series_df: DataFrame with series data
-        filegroup_data: Filegroup JSON data
         provenance_data: Provenance JSON data
 
     Returns:
@@ -279,24 +277,6 @@ def create_html_report(subject, session, series_df, filegroup_data, provenance_d
 
         html_parts.append("</div>")
 
-    # Filegroup Information
-    if filegroup_data:
-        html_parts.append('<div class="summary-box">')
-        html_parts.append("<h2>Heudiconv Filegroup Metadata</h2>")
-
-        html_parts.append("<details>")
-        html_parts.append("<summary>View Filegroup Data</summary>")
-        html_parts.append("<div>")
-        html_parts.append('<div class="json-viewer">')
-        html_parts.append(
-            f"<pre>{html.escape(json.dumps(filegroup_data, indent=2))}</pre>"
-        )
-        html_parts.append("</div>")
-        html_parts.append("</div>")
-        html_parts.append("</details>")
-
-        html_parts.append("</div>")
-
     # Footer
     html_parts.append(
         """
@@ -366,18 +346,12 @@ logger.info(f"Generating report for sub-{subject}/ses-{session}")
 series_tsv_file = snakemake.input.series_tsv
 series_df = load_series_tsv(series_tsv_file)
 
-# Load filegroup JSON file
-filegroup_file = snakemake.input.filegroup_json
-filegroup_data = load_json_file(filegroup_file, "filegroup JSON")
-
 # Load provenance JSON file
 provenance_file = snakemake.input.provenance_json
 provenance_data = load_json_file(provenance_file, "provenance JSON")
 
 # Create HTML report
-html_content = create_html_report(
-    subject, session, series_df, filegroup_data, provenance_data
-)
+html_content = create_html_report(subject, session, series_df, provenance_data)
 
 # Write output
 output_path = snakemake.output.html_report

@@ -133,6 +133,16 @@ study_filter_specs:
 ### Download Configuration
 - `cfmm2tar_download_options`: Options passed to cfmm2tar (e.g., `--skip-derived`)
 - `credentials_file`: Path to CFMM credentials file
+- `merge_duplicate_studies`: If `true`, automatically merge multiple studies for the same subject/session (default: `false`)
+
+#### Merging Multiple Studies
+
+When `merge_duplicate_studies: true` is enabled and multiple studies match the same subject/session:
+- Each study's DICOM tar file is processed separately with heudiconv
+- Outputs are automatically merged into a single session
+- Series IDs are offset (incremented by 1000) to prevent conflicts between studies
+- A `study_uid` column is added to track which series came from which study
+- This is useful when subjects have multiple scan sessions on the same day (e.g., due to console reboot)
 
 ### Convert Configuration
 - `heuristic`: Path to heudiconv heuristic file
@@ -160,7 +170,6 @@ post_convert_fixes:
 
 ### Other Options
 - `final_bids_dir`: Final output directory (default: `bids`)
-- `merge_duplicates`: If `true`, merge multiple studies matched for same subject/session (default: `false`)
 - `stages`: Customize intermediate stage directories
 
 ## Usage
