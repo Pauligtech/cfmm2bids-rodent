@@ -16,8 +16,9 @@ stage_fix = Path(stages.get("fix", "results/4_fix"))
 
 final_bids_dir = Path(config.get("final_bids_dir", "bids"))
 
-
-# query
+# ----------
+# 0 - query
+# ----------
 df = query_dicoms(
     config["search_specs"],
     credentials_file=config["credentials_file"],
@@ -32,19 +33,9 @@ df.to_csv(stage_query / "studies.tsv", sep="\t", index=False)
 valid_subject = validate_column(df, "subject")
 valid_session = validate_column(df, "session")
 
-# Optionally, check if all rows are valid overall
-# all_valid = valid_subject & valid_session
-# if all_valid.all():
-#    print("✅ All subject and session ids are valid!")
-# else:
-#    print("⚠️ Some rows have invalid entries:")
-#    print(
-#        df[["StudyDescription", "PatientID", "StudyDate", "subject", "session"]][
-#            ~all_valid
-#        ]
-#    )
-
-
+# ----------
+# 1 - filter
+# ----------
 df = post_filter(df, config["study_filter_specs"]).sort_values(
     by=["subject", "session"]
 )
@@ -68,14 +59,18 @@ if head_n > 0:
 stage_filter.mkdir(parents=True, exist_ok=True)
 df.to_csv(stage_filter / "studies_filtered.tsv", sep="\t", index=False)
 
+# lists for target rules (duplicates dropped)
+subjects = df[["subject", "session"]].drop_duplicates().subject
+sessions = df[["subject", "session"]].drop_duplicates().session
+
 
 rule all:
     input:
         expand(
             final_bids_dir / "sub-{subject}/ses-{session}",
             zip,
-            subject=df.subject,
-            session=df.session,
+            subject=subjects,
+            session=sessions,
         ),
         final_bids_dir / "dataset_description.json",
         stage_fix / "qc/aggregate_report.html",
@@ -86,8 +81,8 @@ rule download:
         expand(
             stage_download / "dicoms/sub-{subject}/ses-{session}",
             zip,
-            subject=df.subject,
-            session=df.session,
+            subject=subjects,
+            session=sessions,
         ),
 
 
@@ -108,8 +103,8 @@ rule qc:
             stage_convert
             / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series.svg",
             zip,
-            subject=df.subject,
-            session=df.session,
+            subject=subjects,
+            session=sessions,
         ),
 
 
@@ -119,7 +114,7 @@ rule subject_report:
         series_tsv=stage_convert
         / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series.tsv",
         provenance_json=stage_fix
-        / "info/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_provenance.json",
+        / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_provenance.json",
     output:
         html_report=stage_fix
         / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_report.html",
@@ -140,18 +135,17 @@ rule aggregate_report:
             stage_convert
             / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series.tsv",
             zip,
-            subject=df.subject,
-            session=df.session,
+            subject=subjects,
+            session=sessions,
         ),
         subject_reports=expand(
             stage_fix
             / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_report.html",
             zip,
-            subject=df.subject,
-            session=df.session,
+            subject=subjects,
+            session=sessions,
         ),
         convert_validator_json=stage_convert / "qc/bids_validator.json",
-        fix_validator_json=stage_fix / "qc/bids_validator.json",
     output:
         html_report=stage_fix / "qc/aggregate_report.html",
     log:
@@ -216,13 +210,13 @@ rule heudiconv:
     params:
         heudiconv_options=config["heudiconv_options"],
         out_info_dir=lambda wildcards: stage_convert
-        / "info/sub-{subject}/ses-{session}".format(**wildcards),
+        / "qc/sub-{subject}/ses-{session}".format(**wildcards),
     output:
         bids_subj_dir=directory(stage_convert / "bids/sub-{subject}/ses-{session}"),
         auto_txt=stage_convert
-        / "info/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_auto.txt",
+        / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_auto.txt",
         dicominfo_tsv=stage_convert
-        / "info/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_dicominfo.tsv",
+        / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_dicominfo.tsv",
     log:
         "logs/heudiconv/sub-{subject}_ses-{session}.log",
     shadow:
@@ -280,15 +274,15 @@ rule validate_converted:
         bids_subj_dirs=expand(
             stage_convert / "bids/sub-{subject}/ses-{session}",
             zip,
-            subject=df.subject,
-            session=df.session,
+            subject=subjects,
+            session=sessions,
         ),
         convert_qc=expand(
             stage_convert
             / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series.svg",
             zip,
-            subject=df.subject,
-            session=df.session,
+            subject=subjects,
+            session=sessions,
         ),
     params:
         bids_dir=stage_convert / "bids",
@@ -318,7 +312,7 @@ rule post_convert_fix:
     output:
         bids_subj_dir=directory(stage_fix / "bids/sub-{subject}/ses-{session}"),
         prov_json=stage_fix
-        / "info/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_provenance.json",
+        / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_provenance.json",
     params:
         fixes=config["post_convert_fixes"],
     log:
@@ -352,8 +346,8 @@ rule validate_fixed:
         bids_subj_dirs=expand(
             stage_fix / "bids/sub-{subject}/ses-{session}",
             zip,
-            subject=df.subject,
-            session=df.session,
+            subject=subjects,
+            session=sessions,
         ),
     params:
         bids_dir=stage_fix / "bids",

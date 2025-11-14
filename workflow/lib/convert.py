@@ -165,9 +165,7 @@ def merge_auto_txt_files(info_files: list[dict[str, Path]], output_txt: Path) ->
         for k, v in data.items():
             if not isinstance(v, list):
                 continue
-            merged[k].extend(
-                [f"{_i}_{series}" for series in v]
-            )  # prepend number for each study
+            merged[k].extend(v)
 
     # --- SAVE RESULT ---
     with open(output_txt, "w") as f:
