@@ -99,8 +99,8 @@ post_convert_fixes:
 stages:
   query: "results/0_query"
   filter: "results/1_filter"
-  download: "/nfs/trident3/mri/mouse_lecanemab/sourcedata/"
-  convert: "results/3_convert"
-  fix: "results/4_fix"
+  download: "/nfs/trident3/mri/cfmm2bids/results/2_download"
+  convert: "/nfs/trident3/mri/cfmm2bids/results/3_convert"
+  fix: "/nfs/trident3/mri/cfmm2bids/results/4_fix"
 
 
