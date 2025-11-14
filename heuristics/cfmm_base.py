@@ -39,207 +39,207 @@ def infotodict(seqinfo):
     # MP2RAGE
 
     t1w_mprage = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MPRAGE_run-{item:02d}_T1w"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MPRAGE_run-{item:01d}_T1w"
     )
     DIS3D_t1w_mprage = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MPRAGE_rec-DIS3D_run-{item:02d}_T1w"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MPRAGE_rec-DIS3D_run-{item:01d}_T1w"
     )
     DIS2D_t1w_mprage = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MPRAGE_rec-DIS2D_run-{item:02d}_T1w"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MPRAGE_rec-DIS2D_run-{item:01d}_T1w"
     )
 
     inv1_mp2rage = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_run-{item:02d}_inv-1_MP2RAGE"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_run-{item:01d}_inv-1_MP2RAGE"
     )
     inv2_mp2rage = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_run-{item:02d}_inv-2_MP2RAGE"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_run-{item:01d}_inv-2_MP2RAGE"
     )
     t1map = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MP2RAGE_run-{item:02d}_T1map"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MP2RAGE_run-{item:01d}_T1map"
     )
     t1w = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MP2RAGE_run-{item:02d}_T1w"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MP2RAGE_run-{item:01d}_T1w"
     )
     uni_mp2rage = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MP2RAGE_run-{item:02d}_UNIT1"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MP2RAGE_run-{item:01d}_UNIT1"
     )
 
     # Dist. corrected versions:
     DIS3D_inv1_mp2rage = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_inv-1_rec-DIS3D_run-{item:02d}_MP2RAGE"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_inv-1_rec-DIS3D_run-{item:01d}_MP2RAGE"
     )
     DIS3D_inv2_mp2rage = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_inv-2_rec-DIS3D_run-{item:02d}_MP2RAGE"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_inv-2_rec-DIS3D_run-{item:01d}_MP2RAGE"
     )
     DIS3D_t1map = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MP2RAGE_rec-DIS3D_run-{item:02d}_T1map"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MP2RAGE_rec-DIS3D_run-{item:01d}_T1map"
     )
     DIS3D_t1w = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MP2RAGE_rec-DIS3D_run-{item:02d}_T1w"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MP2RAGE_rec-DIS3D_run-{item:01d}_T1w"
     )
     DIS3D_uni_mp2rage = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-UNI_rec-DIS3D_run-{item:02d}_MP2RAGE"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-UNI_rec-DIS3D_run-{item:01d}_MP2RAGE"
     )
 
     DIS2D_inv1_mp2rage = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_inv-1_rec-DIS2D_run-{item:02d}_MP2RAGE"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_inv-1_rec-DIS2D_run-{item:01d}_MP2RAGE"
     )
     DIS2D_inv2_mp2rage = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_inv-2_rec-DIS2D_run-{item:02d}_MP2RAGE"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_inv-2_rec-DIS2D_run-{item:01d}_MP2RAGE"
     )
     DIS2D_t1map = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MP2RAGE_rec-DIS2D_run-{item:02d}_T1map"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MP2RAGE_rec-DIS2D_run-{item:01d}_T1map"
     )
     DIS2D_t1w = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MP2RAGE_rec-DIS2D_run-{item:02d}_T1w"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MP2RAGE_rec-DIS2D_run-{item:01d}_T1w"
     )
     DIS2D_uni_mp2rage = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-UNI_rec-DIS2D_run-{item:02d}_MP2RAGE"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-UNI_rec-DIS2D_run-{item:01d}_MP2RAGE"
     )
 
     inv_1_sa2rage = create_key(
-        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_inv-1_TB1SRGE"
+        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_flip-1_inv-1_TB1SRGE"
     )
     inv_2_sa2rage = create_key(
-        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_inv-2_TB1SRGE"
+        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_flip-2_inv-2_TB1SRGE"
     )
     b1map_sa2rage = create_key(
-        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_acq-SA2RAGE_TB1Map"
+        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_acq-SA2RAGE_TB1Map" #not in bids spec (for raw at least)
     )
     b1Div_sa2rage = create_key(
-        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_acq-SA2RAGE_UNIB1"
+        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_acq-SA2RAGE_b1DivImg" #not in bids spec
     )
 
     # only calculated for DIS2D
     DIS2D_inv_1_sa2rage = create_key(
-        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_inv-1_rec-DIS2D_TB1SRGE"
+        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_rec-DIS2D_flip-1_inv-1_TB1SRGE"
     )
     DIS2D_inv_2_sa2rage = create_key(
-        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_inv-2_rec-DIS2D_TB1SRGE"
+        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_rec-DIS2D_flip-2_inv-2_TB1SRGE"
     )
     DIS2D_b1Div_sa2rage = create_key(
         "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_acq-b1Div_rec-DIS2D_TB1SRGE"
     )
     DIS2D_b1map_sa2rage = create_key(
-        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_acq-b1map_rec-DIS2D_TB1SRGE"
+        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_acq-SA2RAGE_rec-DIS2D_TB1Map"
     )
     DIS3D_b1map_sa2rage = create_key(
-        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_acq-b1map_rec-DIS3D_TB1SRGE"
+        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_acq-SA2RAGE_rec-DIS3D_TB1Map" 
     )
 
     # T2w:
     # 2D TSE
     t2_tse = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TSE_run-{item:02d}_T2w"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TSE_run-{item:01d}_T2w"
     )
     DIS2D_t2_tse = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TSE_run-{item:02d}_rec-DIS2D_T2w"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TSE_run-{item:01d}_rec-DIS2D_T2w"
     )
     DIS3D_t2_tse = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TSE_run-{item:02d}_rec-DIS3D_T2w"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TSE_run-{item:01d}_rec-DIS3D_T2w"
     )
 
     # 2D TSE Transverse
     t2_tse_tra = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TSEtra_run-{item:02d}_T2w"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TSEtra_run-{item:01d}_T2w"
     )
     DIS2D_t2_tse_tra = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TSEtra_rec-DIS2D_run-{item:02d}_T2w"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TSEtra_rec-DIS2D_run-{item:01d}_T2w"
     )
     DIS3D_t2_tse_tra = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TSEtra_rec-DIS3D_run-{item:02d}_T2w"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TSEtra_rec-DIS3D_run-{item:01d}_T2w"
     )
 
     # 2D TSE Coronal
     t2_tse_cor = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TSEcor_run-{item:02d}_T2w"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TSEcor_run-{item:01d}_T2w"
     )
     DIS2D_t2_tse_cor = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TSEcor_rec-DIS2D_run-{item:02d}_T2w"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TSEcor_rec-DIS2D_run-{item:01d}_T2w"
     )
     DIS3D_t2_tse_cor = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TSEcor_rec-DIS3D_run-{item:02d}_T2w"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TSEcor_rec-DIS3D_run-{item:01d}_T2w"
     )
 
     # PD:
     # 2D TSE
     pd_tse = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TSE_run-{item:02d}_PD"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TSE_run-{item:01d}_PD"
     )
     DIS2D_pd_tse = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TSE_run-{item:02d}_rec-DIS2D_PD"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TSE_run-{item:01d}_rec-DIS2D_PD"
     )
     DIS3D_pd_tse = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TSE_run-{item:02d}_rec-DIS3D_PD"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TSE_run-{item:01d}_rec-DIS3D_PD"
     )
 
     # 2D TSE Transverse
     pd_tse_tra = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TSEtra_run-{item:02d}_PD"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TSEtra_run-{item:01d}_PD"
     )
     DIS2D_pd_tse_tra = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TSEtra_rec-DIS2D_run-{item:02d}_PD"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TSEtra_rec-DIS2D_run-{item:01d}_PD"
     )
     DIS3D_pd_tse_tra = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TSEtra_rec-DIS3D_run-{item:02d}_PD"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TSEtra_rec-DIS3D_run-{item:01d}_PD"
     )
 
     # 2D TSE Coronal
     pd_tse_cor = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TSEcor_run-{item:02d}_PD"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TSEcor_run-{item:01d}_PD"
     )
     DIS2D_pd_tse_cor = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TSEcor_rec-DIS2D_run-{item:02d}_PD"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TSEcor_rec-DIS2D_run-{item:01d}_PD"
     )
     DIS3D_pd_tse_cor = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TSEcor_rec-DIS3D_run-{item:02d}_PD"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TSEcor_rec-DIS3D_run-{item:01d}_PD"
     )
 
     # combined PDT2
     # 2D TSE
     pd_t2_tse = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_echo_acq-TSE_run-{item:02d}_PDT2"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_echo_acq-TSE_run-{item:01d}_PDT2"
     )
     DIS2D_pd_t2_tse = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_echo_acq-TSE_run-{item:02d}_rec-DIS2D_PDT2"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_echo_acq-TSE_run-{item:01d}_rec-DIS2D_PDT2"
     )
     DIS3D_pd_t2_tse = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_echo_acq-TSE_run-{item:02d}_rec-DIS3D_PDT2"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_echo_acq-TSE_run-{item:01d}_rec-DIS3D_PDT2"
     )
 
     # 2D TSE Transverse
     pd_t2_tse_tra = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_echo_acq-TSEtra_run-{item:02d}_PDT2"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_echo_acq-TSEtra_run-{item:01d}_PDT2"
     )
     DIS2D_pd_t2_tse_tra = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_echo_acq-TSEtra_rec-DIS2D_run-{item:02d}_PDT2"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_echo_acq-TSEtra_rec-DIS2D_run-{item:01d}_PDT2"
     )
     DIS3D_pd_t2_tse_tra = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_echo_acq-TSEtra_rec-DIS3D_run-{item:02d}_PDT2"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_echo_acq-TSEtra_rec-DIS3D_run-{item:01d}_PDT2"
     )
 
     # 2D TSE Coronal
     pd_t2_tse_cor = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_echo_acq-TSEcor_run-{item:02d}_PDT2"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_echo_acq-TSEcor_run-{item:01d}_PDT2"
     )
     DIS2D_pd_t2_tse_cor = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_echo_acq-TSEcor_rec-DIS2D_run-{item:02d}_PDT2"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_echo_acq-TSEcor_rec-DIS2D_run-{item:01d}_PDT2"
     )
     DIS3D_pd_t2_tse_cor = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_echo_acq-TSEcor_rec-DIS3D_run-{item:02d}_PDT2"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_echo_acq-TSEcor_rec-DIS3D_run-{item:01d}_PDT2"
     )
 
     # Diffusion
     dwi = create_key(
-        "{bids_subject_session_dir}/dwi/{bids_subject_session_prefix}_run-{item:02d}_dwi"
+        "{bids_subject_session_dir}/dwi/{bids_subject_session_prefix}_run-{item:01d}_dwi"
     )
 
     # uFA
     dwi_ufa = create_key(
-        "{bids_subject_session_dir}/dwi/{bids_subject_session_prefix}_acq-uFA_run-{item:02d}_dwi"
+        "{bids_subject_session_dir}/dwi/{bids_subject_session_prefix}_acq-uFA_run-{item:01d}_dwi"
     )
     dwi_ogse = create_key(
-        "{bids_subject_session_dir}/dwi/{bids_subject_session_prefix}_run-{item:02d}_ogse"
+        "{bids_subject_session_dir}/dwi/{bids_subject_session_prefix}_run-{item:01d}_ogse"
     )
 
     # Field Maps:
@@ -254,28 +254,28 @@ def infotodict(seqinfo):
 
     # T2 SPACE
     spc_T2w = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-SPACE_run-{item:02d}_T2w"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-SPACE_run-{item:01d}_T2w"
     )
 
     # Dist. corr. versions:
     DIS2D_spc_T2w = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-SPACE_rec-DIS2D_run-{item:02d}_T2w"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-SPACE_rec-DIS2D_run-{item:01d}_T2w"
     )
     DIS3D_spc_T2w = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-SPACE_rec-DIS3D_run-{item:02d}_T2w"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-SPACE_rec-DIS3D_run-{item:01d}_T2w"
     )
 
     # FLAIR
     spc_FLAIR = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-SPACE_run-{item:02d}_FLAIR"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-SPACE_run-{item:01d}_FLAIR"
     )
 
     # Dist. corr. versions:
     DIS2D_spc_FLAIR = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-SPACE_rec-DIS2D_run-{item:02d}_FLAIR"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-SPACE_rec-DIS2D_run-{item:01d}_FLAIR"
     )
     DIS3D_spc_FLAIR = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-SPACE_rec-DIS3D_run-{item:02d}_FLAIR"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-SPACE_rec-DIS3D_run-{item:01d}_FLAIR"
     )
 
     # Time-of-flight Angio
@@ -339,10 +339,10 @@ def infotodict(seqinfo):
 
     # me-gre with compressed sensing
     mag_echo_CS_GRE = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-CS_run-{item:02d}_part-mag_echo_GRE"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-CS_run-{item:01d}_part-mag_echo_GRE"
     )
     phase_echo_CS_GRE = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-CS_run-{item:02d}_part-phase_echo_GRE"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-CS_run-{item:01d}_part-phase_echo_GRE"
     )
 
     # aspire:
@@ -359,34 +359,37 @@ def infotodict(seqinfo):
         "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-ASPIRE_rec-DIS2D_R2star"
     )
 
-    # MEMP2RAGE #
-    me_t1 = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MP2RAGE_run-{item:02d}_T1w"
-    )
+    # MEMP2RAGE   #--- note: the indiv echos for mp2rage from memp2rage are not typically needed
     me_t1map = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MP2RAGE_run-{item:02d}_T1map"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MP2RAGE_run-{item:01d}_T1map"
     )
-    me_t1inv1 = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_run-{item:02d}_inv-1_MP2RAGE"
-    )
-    me_t1inv2 = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_run-{item:02d}_inv-2_MP2RAGE"
-    )
-    me_t1uni = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MP2RAGE_run-{item:02d}_UNIT1"
-    )
-
     me_t1inv1_ce = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_run-{item:02d}_inv-1_MP2RAGE"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_run-{item:01d}_inv-1_MP2RAGE"
     )
     me_t1_ce = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MEMP2RAGE_run-{item:02d}_T1w"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MEMP2RAGE_run-{item:01d}_T1w"
     )
     me_t1inv2_ce = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_run-{item:02d}_inv-2_MP2RAGE"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_run-{item:01d}_inv-2_MP2RAGE"
     )
     me_t1uni_ce = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MEMP2RAGE_run-{item:02d}_UNIT1"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MEMP2RAGE_run-{item:01d}_UNIT1"
+    )
+    #distortion-corrected versions:
+    me_t1map_dis2d = create_key(
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MP2RAGE_run-{item:01d}_T1map"
+    )
+    me_t1inv1_ce_dis2d = create_key(
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_run-{item:01d}_inv-1_MP2RAGE"
+    )
+    me_t1_ce_dis2d = create_key(
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MEMP2RAGE_run-{item:01d}_T1w"
+    )
+    me_t1inv2_ce_dis2d = create_key(
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_run-{item:01d}_inv-2_MP2RAGE"
+    )
+    me_t1uni_ce_dis2d = create_key(
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MEMP2RAGE_run-{item:01d}_UNIT1"
     )
 
     # DIR T2 #
@@ -399,23 +402,23 @@ def infotodict(seqinfo):
 
     # MT-on and MT-off GRE (magnetization transfer)
     mag_MT_on_GRE = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MTon_run-{item:02d}_GRE"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MTon_run-{item:01d}_GRE"
     )
     DIS2D_mag_MT_on_GRE = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MTon_rec-DIS2D_run-{item:02d}_GRE"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MTon_rec-DIS2D_run-{item:01d}_GRE"
     )
     DIS3D_mag_MT_on_GRE = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MTon_rec-DIS3D_run-{item:02d}_GRE"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MTon_rec-DIS3D_run-{item:01d}_GRE"
     )
 
     mag_MT_off_GRE = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MToff_run-{item:02d}_GRE"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MToff_run-{item:01d}_GRE"
     )
     DIS2D_mag_MT_off_GRE = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MToff_rec-DIS2D_run-{item:02d}_GRE"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MToff_rec-DIS2D_run-{item:01d}_GRE"
     )
     DIS3D_mag_MT_off_GRE = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MToff_rec-DIS3D_run-{item:02d}_GRE"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MToff_rec-DIS3D_run-{item:01d}_GRE"
     )
 
     info = {
@@ -437,15 +440,16 @@ def infotodict(seqinfo):
         DIS3D_t1w: [],
         DIS3D_inv2_mp2rage: [],
         DIS3D_uni_mp2rage: [],
-        me_t1: [],
         me_t1map: [],
-        me_t1inv1: [],
-        me_t1inv2: [],
-        me_t1uni: [],
         me_t1inv1_ce: [],
         me_t1_ce: [],
         me_t1inv2_ce: [],
         me_t1uni_ce: [],
+        me_t1map_dis2d: [],
+        me_t1inv1_ce_dis2d: [],
+        me_t1_ce_dis2d: [],
+        me_t1inv2_ce_dis2d: [],
+        me_t1uni_ce_dis2d: [],
         TOF_angio: [],
         DIS2D_TOF_SAG: [],
         DIS2D_TOF_COR: [],
@@ -529,26 +533,35 @@ def infotodict(seqinfo):
         if "memp2rage" in s.protocol_name:
             if "UNI-DEN" in (s.series_description).strip():
                 if "combEcho" in (s.series_description).strip():
-                    info[me_t1_ce].append({"item": s.series_id})
-                else:
-                    info[me_t1].append({"item": s.series_id})
+                    if "DIS2D" in (s.image_type[3].strip()):
+                        info[me_t1_ce_dis2d].append({"item": s.series_id})
+                    else:
+                        info[me_t1_ce].append({"item": s.series_id})
             if "INV1" in (s.series_description).strip():
                 if "combEcho" in (s.series_description).strip():
-                    info[me_t1inv1_ce].append({"item": s.series_id})
-                else:
-                    info[me_t1inv1].append({"item": s.series_id})
+                    if "DIS2D" in (s.image_type[3].strip()):
+                        info[me_t1inv1_ce_dis2d].append({"item": s.series_id})
+                    else:
+                        info[me_t1inv1_ce].append({"item": s.series_id})
             if "INV2" in (s.series_description).strip():
                 if "combEcho" in (s.series_description).strip():
-                    info[me_t1inv2_ce].append({"item": s.series_id})
-                else:
-                    info[me_t1inv2].append({"item": s.series_id})
+                    if "DIS2D" in (s.image_type[3].strip()):
+                        info[me_t1inv2_ce_dis2d].append({"item": s.series_id})
+                    else:
+                        info[me_t1inv2_ce].append({"item": s.series_id})
+
             if "UNI_Images" in (s.series_description).strip():
                 if "combEcho" in (s.series_description).strip():
-                    info[me_t1uni_ce].append({"item": s.series_id})
-                else:
-                    info[me_t1uni].append({"item": s.series_id})
+                    if "DIS2D" in (s.image_type[3].strip()):
+                        info[me_t1uni_ce_dis2d].append({"item": s.series_id})
+                    else:
+                        info[me_t1uni_ce].append({"item": s.series_id})
             if "T1_Images" in (s.series_description).strip():
-                info[me_t1map].append({"item": s.series_id})
+                if "DIS2D" in (s.image_type[3].strip()):
+                    info[me_t1map_dis2d].append({"item": s.series_id})
+                else:
+                    info[me_t1map].append({"item": s.series_id})
+
 
         # mp2rage
         if "mp2rage" in s.series_description.lower() and (
