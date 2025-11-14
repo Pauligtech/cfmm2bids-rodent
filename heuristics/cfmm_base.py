@@ -49,10 +49,10 @@ def infotodict(seqinfo):
     )
 
     inv1_mp2rage = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_inv-1_run-{item:02d}_MP2RAGE"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_run-{item:02d}_inv-1_MP2RAGE"
     )
     inv2_mp2rage = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_inv-2_run-{item:02d}_MP2RAGE"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_run-{item:02d}_inv-2_MP2RAGE"
     )
     t1map = create_key(
         "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MP2RAGE_run-{item:02d}_T1map"
@@ -61,7 +61,7 @@ def infotodict(seqinfo):
         "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MP2RAGE_run-{item:02d}_T1w"
     )
     uni_mp2rage = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-UNI_run-{item:02d}_MP2RAGE"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MP2RAGE_run-{item:02d}_UNIT1"
     )
 
     # Dist. corrected versions:
@@ -98,33 +98,33 @@ def infotodict(seqinfo):
     )
 
     inv_1_sa2rage = create_key(
-        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_inv-1_SA2RAGE"
+        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_inv-1_TB1SRGE"
     )
     inv_2_sa2rage = create_key(
-        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_inv-2_SA2RAGE"
+        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_inv-2_TB1SRGE"
     )
     b1map_sa2rage = create_key(
-        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_acq-b1map_SA2RAGE"
+        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_acq-SA2RAGE_TB1Map"
     )
     b1Div_sa2rage = create_key(
-        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_acq-b1Div_SA2RAGE"
+        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_acq-SA2RAGE_UNIB1"
     )
 
     # only calculated for DIS2D
     DIS2D_inv_1_sa2rage = create_key(
-        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_inv-1_rec-DIS2D_SA2RAGE"
+        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_inv-1_rec-DIS2D_TB1SRGE"
     )
     DIS2D_inv_2_sa2rage = create_key(
-        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_inv-2_rec-DIS2D_SA2RAGE"
+        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_inv-2_rec-DIS2D_TB1SRGE"
     )
     DIS2D_b1Div_sa2rage = create_key(
-        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_acq-b1Div_rec-DIS2D_SA2RAGE"
+        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_acq-b1Div_rec-DIS2D_TB1SRGE"
     )
     DIS2D_b1map_sa2rage = create_key(
-        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_acq-b1map_rec-DIS2D_SA2RAGE"
+        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_acq-b1map_rec-DIS2D_TB1SRGE"
     )
     DIS3D_b1map_sa2rage = create_key(
-        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_acq-b1map_rec-DIS3D_SA2RAGE"
+        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_acq-b1map_rec-DIS3D_TB1SRGE"
     )
 
     # T2w:
@@ -361,32 +361,32 @@ def infotodict(seqinfo):
 
     # MEMP2RAGE #
     me_t1 = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_echo_acq-MP2RAGE_run-{item:02d}_T1w"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MP2RAGE_run-{item:02d}_T1w"
     )
     me_t1map = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_echo_acq-MP2RAGE_run-{item:02d}_T1map"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MP2RAGE_run-{item:02d}_T1map"
     )
     me_t1inv1 = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_echo_inv-1_run-{item:02d}_MP2RAGE"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_run-{item:02d}_inv-1_MP2RAGE"
     )
     me_t1inv2 = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_echo_inv-2_run-{item:02d}_MP2RAGE"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_run-{item:02d}_inv-2_MP2RAGE"
     )
     me_t1uni = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_echo_acq-UNI_run-{item:02d}_MP2RAGE"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MP2RAGE_run-{item:02d}_UNIT1"
     )
 
     me_t1inv1_ce = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_inv-1_run-{item:02d}_MEMP2RAGE"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_run-{item:02d}_inv-1_MP2RAGE"
     )
     me_t1_ce = create_key(
         "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MEMP2RAGE_run-{item:02d}_T1w"
     )
     me_t1inv2_ce = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_inv-2_run-{item:02d}_MEMP2RAGE"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_run-{item:02d}_inv-2_MP2RAGE"
     )
     me_t1uni_ce = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-UNI_run-{item:02d}_MEMP2RAGE"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MEMP2RAGE_run-{item:02d}_UNIT1"
     )
 
     # DIR T2 #
