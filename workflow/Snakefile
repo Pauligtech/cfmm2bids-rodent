@@ -287,7 +287,7 @@ rule post_convert_fix:
     threads: 1
     resources:
         mem_mb=8000,
-        runtime=10,
+        runtime=60,
     script:
         "scripts/post_convert_fix.py"
 
