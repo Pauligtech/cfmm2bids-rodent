@@ -104,10 +104,10 @@ def infotodict(seqinfo):
         "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_flip-2_inv-2_TB1SRGE"
     )
     b1map_sa2rage = create_key(
-        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_acq-SA2RAGE_TB1Map" #not in bids spec (for raw at least)
+        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_acq-SA2RAGE_TB1Map"  # not in bids spec (for raw at least)
     )
     b1Div_sa2rage = create_key(
-        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_acq-SA2RAGE_b1DivImg" #not in bids spec
+        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_acq-SA2RAGE_b1DivImg"  # not in bids spec
     )
 
     # only calculated for DIS2D
@@ -124,7 +124,7 @@ def infotodict(seqinfo):
         "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_acq-SA2RAGE_rec-DIS2D_TB1Map"
     )
     DIS3D_b1map_sa2rage = create_key(
-        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_acq-SA2RAGE_rec-DIS3D_TB1Map" 
+        "{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_acq-SA2RAGE_rec-DIS3D_TB1Map"
     )
 
     # T2w:
@@ -375,7 +375,7 @@ def infotodict(seqinfo):
     me_t1uni_ce = create_key(
         "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MEMP2RAGE_run-{item:01d}_UNIT1"
     )
-    #distortion-corrected versions:
+    # distortion-corrected versions:
     me_t1map_dis2d = create_key(
         "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MP2RAGE_run-{item:01d}_T1map"
     )
@@ -561,7 +561,6 @@ def infotodict(seqinfo):
                     info[me_t1map_dis2d].append({"item": s.series_id})
                 else:
                     info[me_t1map].append({"item": s.series_id})
-
 
         # mp2rage
         if "mp2rage" in s.series_description.lower() and (
