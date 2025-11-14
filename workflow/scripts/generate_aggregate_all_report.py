@@ -499,6 +499,9 @@ def format_validator_summary(validator_data):
         if not issues:
             return
 
+        # Add heading to indicate severity level
+        html_parts.append(f"<h4>{severity_label}:</h4>")
+
         # Organize issues: code -> subCode -> locations
         hierarchy = defaultdict(lambda: defaultdict(list))
 
