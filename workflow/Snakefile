@@ -187,6 +187,9 @@ rule bidsignore_convert:
         lines=config.get("bidsignore",[])
     output:
         ignore=stage_convert / "bids/.bidsignore"
+    resources:
+        mem_mb=4000,
+        runtime=10,
     run:
         with open(output.ignore, "w") as file:
             for item in params.lines:
@@ -294,6 +297,9 @@ rule bidsignore_post_convert_fix:
         lines=config.get("bidsignore",[])
     output:
         ignore=stage_fix / "bids/.bidsignore"
+    resources:
+        mem_mb=4000,
+        runtime=10,
     run:
         with open(output.ignore, "w") as file:
             for item in params.lines:
@@ -461,6 +467,9 @@ rule bidsignore_final:
         ignore=stage_fix / "bids/.bidsignore"
     output:
         ignore=final_bids_dir / ".bidsignore"
+    resources:
+        mem_mb=4000,
+        runtime=10,
     shell:
         "cp {input} {output}"
 
