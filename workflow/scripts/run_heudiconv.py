@@ -15,7 +15,6 @@ from lib.convert import (
 from lib.utils import setup_logger
 
 log_file = snakemake.log[0] if snakemake.log else None
-log_file = None
 logger = setup_logger(log_file)
 
 
