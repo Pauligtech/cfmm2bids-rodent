@@ -206,6 +206,7 @@ rule heudiconv:
     input:
         dicoms_dir=rules.cfmm2tar.output.dicoms_dir,
         heuristic=config["heuristic"],
+        base_heuristics=config.get("base_heuristics",[]),
         dcmconfig_json=config["dcmconfig_json"],
     params:
         heudiconv_options=config["heudiconv_options"],
@@ -229,6 +230,17 @@ rule heudiconv:
         "convert"
     script:
         "scripts/run_heudiconv.py"
+
+rule bidsignore_convert:
+    params:
+        lines=config.get("bidsignore",[])
+    output:
+        ignore=stage_convert / "bids/.bidsignore"
+    run:
+        with open(output.ignore, "w") as file:
+            for item in params.lines:
+                file.write(item + "\n")
+
 
 
 rule dataset_description_for_convert:
@@ -271,6 +283,7 @@ rule generate_convert_qc_figs:
 rule validate_converted:
     input:
         dataset_description=stage_convert / "bids/dataset_description.json",
+        ignore=stage_convert / "bids/.bidsignore",
         bids_subj_dirs=expand(
             stage_convert / "bids/sub-{subject}/ses-{session}",
             zip,
@@ -325,6 +338,17 @@ rule post_convert_fix:
         "scripts/post_convert_fix.py"
 
 
+rule bidsignore_post_convert_fix:
+    params:
+        lines=config.get("bidsignore",[])
+    output:
+        ignore=stage_fix / "bids/.bidsignore"
+    run:
+        with open(output.ignore, "w") as file:
+            for item in params.lines:
+                file.write(item + "\n")
+
+
 rule dataset_description_fixed:
     input:
         dd_json=stage_convert / "bids/dataset_description.json",
@@ -339,10 +363,10 @@ rule dataset_description_fixed:
     shell:
         "cp {input.dd_json} {output.dd_json} &> {log}"
 
-
 rule validate_fixed:
     input:
         dataset_description=stage_fix / "bids/dataset_description.json",
+        ignore=stage_fix / "bids/.bidsignore",
         bids_subj_dirs=expand(
             stage_fix / "bids/sub-{subject}/ses-{session}",
             zip,

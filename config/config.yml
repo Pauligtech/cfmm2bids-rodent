@@ -299,7 +299,10 @@ post_convert_fixes:
   # - name: reorient_nifti
   #   pattern: "anat/*T1w.nii.gz"
   #   action: fix_orientation
-
+  
+# Lines to add to the .bidsignore file
+# bidsignore:
+#  - 
 
 # ============================================================================
 # INTERMEDIATE OUTPUT FOLDERS (OPTIONAL)

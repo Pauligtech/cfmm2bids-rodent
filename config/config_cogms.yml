@@ -83,7 +83,8 @@ merge_duplicate_studies: True
 heudiconv_options: '--minmeta '
 heuristic: heuristics/Menon_CogMSv2.py
 dcmconfig_json: resources/dcm2niix_config.json
-
+base_heuristics:
+  - heuristics/cfmm_base.py
 
 # 5. fix 
 post_convert_fixes:
@@ -95,6 +96,11 @@ post_convert_fixes:
     action: update_json
     updates:
       NewPhaseEncodingDirection: "j-"
+
+bidsignore:
+  - '*b1DivImg.*'
+  - '*TB1Map.*'
+
 
 # intermediate output folders
 stages:
