@@ -73,6 +73,7 @@ rule all:
             session=sessions,
         ),
         final_bids_dir / "dataset_description.json",
+        stage_convert / "qc/aggregate_report.html",
         stage_fix / "qc/aggregate_report.html",
 
 
@@ -106,56 +107,6 @@ rule qc:
             subject=subjects,
             session=sessions,
         ),
-
-
-rule subject_report:
-    """Generate individual QC report for a single subject/session"""
-    input:
-        series_tsv=stage_convert
-        / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series.tsv",
-        provenance_json=stage_fix
-        / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_provenance.json",
-    output:
-        html_report=stage_fix
-        / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_report.html",
-    log:
-        "logs/subject_report/sub-{subject}_ses-{session}.log",
-    threads: 1
-    resources:
-        mem_mb=4000,
-        runtime=10,
-    script:
-        "scripts/generate_subject_report.py"
-
-
-rule aggregate_report:
-    """Generate aggregate report with TOC linking to all subject reports"""
-    input:
-        series_tsv=expand(
-            stage_convert
-            / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series.tsv",
-            zip,
-            subject=subjects,
-            session=sessions,
-        ),
-        subject_reports=expand(
-            stage_fix
-            / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_report.html",
-            zip,
-            subject=subjects,
-            session=sessions,
-        ),
-        convert_validator_json=stage_convert / "qc/bids_validator.json",
-    output:
-        html_report=stage_fix / "qc/aggregate_report.html",
-    log:
-        "logs/aggregate_report/aggregate_report.log",
-    threads: 1
-    resources:
-        mem_mb=4000,
-        runtime=10,
-    script:
-        "scripts/generate_aggregate_all_report.py"
 
 
 def get_uid_from_wildcards(wildcards):
@@ -386,14 +337,113 @@ rule validate_fixed:
     shell:
         # || true prevents workflow failure when validation errors are found
         # validate twice, to write to log, to txt, and to json
-        "bids-validator-deno {params.bids_dir} --format text &> {log} && "
-        "bids-validator-deno {params.bids_dir} --format json_pp -o {output.validator_json}"
+        "bids-validator-deno {params.bids_dir} --format text &> {log} || true && "
+        "bids-validator-deno {params.bids_dir} --format json_pp -o {output.validator_json} || true"
+
+
+
+rule subject_report:
+    """Generate individual QC report for a single subject/session"""
+    input:
+        series_tsv=stage_convert
+        / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series.tsv",
+        provenance_json=stage_fix
+        / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_provenance.json",
+    output:
+        html_report=stage_fix
+        / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_report.html",
+    log:
+        "logs/subject_report/sub-{subject}_ses-{session}.log",
+    threads: 1
+    resources:
+        mem_mb=4000,
+        runtime=10,
+    script:
+        "scripts/generate_subject_report.py"
+
+
+rule aggregate_report_convert:
+    """Generate aggregate report with TOC linking to all subject reports"""
+    input:
+        series_tsv=expand(
+            stage_convert
+            / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series.tsv",
+            zip,
+            subject=subjects,
+            session=sessions,
+        ),
+        subject_reports=expand(
+            stage_fix
+            / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_report.html",
+            zip,
+            subject=subjects,
+            session=sessions,
+        ),
+        convert_validator_json=stage_convert / "qc/bids_validator.json",
+    output:
+        html_report=stage_convert / "qc/aggregate_report.html",
+    log:
+        "logs/aggregate_report/aggregate_report_convert.log",
+    threads: 1
+    resources:
+        mem_mb=4000,
+        runtime=10,
+    script:
+        "scripts/generate_aggregate_all_report.py"
+
+
+rule aggregate_report_fix:
+    """Generate aggregate report with TOC linking to all subject reports"""
+    input:
+        series_tsv=expand(
+            stage_convert
+            / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series.tsv",
+            zip,
+            subject=subjects,
+            session=sessions,
+        ),
+        subject_reports=expand(
+            stage_fix
+            / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_report.html",
+            zip,
+            subject=subjects,
+            session=sessions,
+        ),
+        fix_validator_json=stage_fix / "qc/bids_validator.json",
+    output:
+        html_report=stage_fix / "qc/aggregate_report.html",
+    log:
+        "logs/aggregate_report/aggregate_report_fix.log",
+    threads: 1
+    resources:
+        mem_mb=4000,
+        runtime=10,
+    script:
+        "scripts/generate_aggregate_all_report.py"
+
+
+rule validate_final:
+    """final validation before copying, fails if invalid"""
+    input:
+        validator_json=stage_fix / "qc/bids_validator.json",
+    params:
+        bids_dir=stage_fix / "bids",
+    output:
+        validator_txt=final_bids_dir / "code" /  "bids_validator.txt",  #require validated
+    threads: 1
+    resources:
+        mem_mb=4000,
+        runtime=10,
+    shell:
+        "bids-validator-deno {params.bids_dir} --format text &> {output.validator_txt}"
+
+
 
 
 # final_bids_dir
 rule final_bids_subj:
     input:
-        validator=stage_fix / "qc/bids_validator.json",  #require validated
+        validator=final_bids_dir / "code" /  "bids_validator.txt",  #require validated
         bids_subj_dir=stage_fix / "bids/sub-{subject}/ses-{session}",
     output:
         bids_subj_dir=directory(final_bids_dir / "sub-{subject}/ses-{session}"),
@@ -406,11 +456,20 @@ rule final_bids_subj:
     shell:
         "cp -R {input.bids_subj_dir} {output.bids_subj_dir} &> {log}"
 
+rule bidsignore_final:
+    input:
+        ignore=stage_fix / "bids/.bidsignore"
+    output:
+        ignore=final_bids_dir / ".bidsignore"
+    shell:
+        "cp {input} {output}"
+
 
 rule final_dataset_description:
     input:
-        validator=stage_fix / "qc/bids_validator.json",  #require validated
+        validator=final_bids_dir / "code" /  "bids_validator.txt",  #require validated
         dd_json=stage_fix / "bids/dataset_description.json",
+        ignore=final_bids_dir / ".bidsignore"
     output:
         dd_json=final_bids_dir / "dataset_description.json",
     threads: 1
