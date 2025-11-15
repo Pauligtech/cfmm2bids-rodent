@@ -238,10 +238,10 @@ def get_cmd_cp_subj_dirs(wildcards, input, output):
         subj_path = Path(subj_dir)
         rel_path = subj_path.relative_to(subj_path.parents[1])
         out_path = Path(output.bids_dir) / rel_path
-        cmds.append("mkdir -p {out_path}")
-        cmds.append("cp -R {subj_path}/* {out_path}/")
+        cmds.append(f"mkdir -p {out_path}")
+        cmds.append(f"cp -R {subj_path}/* {out_path}/")
 
-    return " ".join(cmds)
+    return " && ".join(cmds)
 
 
 rule assemble_convert_bids:
