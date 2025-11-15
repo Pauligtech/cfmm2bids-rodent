@@ -227,6 +227,20 @@ rule generate_convert_qc_figs:
         "scripts/generate_convert_qc_figs.py"
 
 
+def get_cmd_cp_subj_dirs(wildcards, input, output):
+
+    cmds = []
+    for subj_dir in input.bids_subj_dirs:
+        # get path to create at output
+        subj_path = Path(subj_dir)
+        rel_path = subj_path.relative_to(subj_path.parents[1])
+        out_path = Path(output.bids_dir) / rel_path
+        cmds.append("mkdir -p {out_path}")
+        cmds.append("cp -R {subj_path}/* {out_path}/")
+
+    return " ".join(cmds)
+
+
 rule assemble_convert_bids:
     """
     Assemble the converted BIDS dataset from staging directory.
@@ -249,23 +263,23 @@ rule assemble_convert_bids:
             session=sessions,
         ),
     params:
-        staging_dir=stage_convert / "bids-staging",
+        cmd_cp_subj_dirs=get_cmd_cp_subj_dirs,
     output:
         bids_dir=directory(stage_convert / "bids"),
     threads: 1
     resources:
         mem_mb=4000,
-        runtime=10,
+        runtime=60,
     log:
         "logs/assemble_convert_bids/assemble.log",
     shell:
-        "rm -rf {output.bids_dir} && cp -R {params.staging_dir} {output.bids_dir} &> {log}"
+        "mkdir -p {output.bids_dir} && "
+        "cp {input.dataset_description} {output.bids_dir} && "
+        "{params.cmd_cp_subj_dirs}"
 
 
 rule validate_converted:
     input:
-        bids_dir=stage_convert / "bids",
-    params:
         bids_dir=stage_convert / "bids",
     output:
         validator_json=stage_convert / "qc/bids_validator.json",
@@ -278,8 +292,8 @@ rule validate_converted:
     shell:
         # || true prevents workflow failure when validation errors are found
         # validate twice, to write to log, to txt, and to json
-        "bids-validator-deno {params.bids_dir} --format text &> {log} || true && "
-        "bids-validator-deno {params.bids_dir} --format json_pp -o {output.validator_json} || true"
+        "bids-validator-deno {input.bids_dir} --format text &> {log} || true && "
+        "bids-validator-deno {input.bids_dir} --format json_pp -o {output.validator_json} || true"
 
 
 rule post_convert_fix:
@@ -288,7 +302,7 @@ rule post_convert_fix:
     (defined in config['post_bids_fixes']) sequentially.
     """
     input:
-        bids_subj_dir=stage_convert / "bids/sub-{subject}/ses-{session}",
+        bids_subj_dir=stage_convert / "bids-staging/sub-{subject}/ses-{session}",
         validator_json=stage_convert / "qc/bids_validator.json",
     output:
         bids_subj_dir=directory(stage_fix / "bids-staging/sub-{subject}/ses-{session}"),
@@ -301,7 +315,7 @@ rule post_convert_fix:
     threads: 1
     resources:
         mem_mb=8000,
-        runtime=10,
+        runtime=60,
     script:
         "scripts/post_convert_fix.py"
 
@@ -319,7 +333,7 @@ rule bidsignore_post_convert_fix_staging:
 
 rule dataset_description_fixed_staging:
     input:
-        dd_json=stage_convert / "bids/dataset_description.json",
+        dd_json=stage_convert / "bids-staging/dataset_description.json",
     output:
         dd_json=stage_fix / "bids-staging/dataset_description.json",
     log:
@@ -354,23 +368,24 @@ rule assemble_fix_bids:
             session=sessions,
         ),
     params:
-        staging_dir=stage_fix / "bids-staging",
+        cmd_cp_subj_dirs=get_cmd_cp_subj_dirs,
     output:
         bids_dir=directory(stage_fix / "bids"),
     threads: 1
     resources:
         mem_mb=4000,
-        runtime=10,
+        runtime=60,
     log:
         "logs/assemble_fix_bids/assemble.log",
     shell:
-        "rm -rf {output.bids_dir} && cp -R {params.staging_dir} {output.bids_dir} &> {log}"
+        "mkdir -p {output.bids_dir} && "
+        "cp {input.dataset_description} {output.bids_dir} && "
+        "cp {input.ignore} {output.bids_dir} && "
+        "{params.cmd_cp_subj_dirs}"
 
 
 rule validate_fixed:
     input:
-        bids_dir=stage_fix / "bids",
-    params:
         bids_dir=stage_fix / "bids",
     output:
         validator_json=stage_fix / "qc/bids_validator.json",
@@ -383,8 +398,8 @@ rule validate_fixed:
     shell:
         # || true prevents workflow failure when validation errors are found
         # validate twice, to write to log, to txt, and to json
-        "bids-validator-deno {params.bids_dir} --format text &> {log} || true && "
-        "bids-validator-deno {params.bids_dir} --format json_pp -o {output.validator_json} || true"
+        "bids-validator-deno {input.bids_dir} --format text &> {log} || true && "
+        "bids-validator-deno {input.bids_dir} --format json_pp -o {output.validator_json} || true"
 
 
 rule subject_report:
@@ -472,16 +487,14 @@ rule validate_final:
     input:
         validator_json=stage_fix / "qc/bids_validator.json",
         bids_dir=stage_fix / "bids",
-    params:
-        bids_dir=stage_fix / "bids",
     output:
-        validator_txt=final_bids_dir / "code/bids_validator.txt",  # require validated
+        validator_txt=stage_fix / "qc/final_bids_validator.txt",  # require validated
     threads: 1
     resources:
         mem_mb=4000,
         runtime=10,
     shell:
-        "mkdir -p {final_bids_dir}/code && bids-validator-deno {params.bids_dir} --format text &> {output.validator_txt}"
+        "bids-validator-deno {input.bids_dir} --format text &> {output.validator_txt}"
 
 
 # final_bids_dir
@@ -491,10 +504,8 @@ rule assemble_final_bids:
     This ensures the final BIDS directory is always clean and matches the requested subjects.
     """
     input:
-        validator=final_bids_dir / "code/bids_validator.txt",  # require validated
+        validator_txt=stage_fix / "qc/final_bids_validator.txt",  # require validated
         bids_dir=stage_fix / "bids",
-    params:
-        source_dir=stage_fix / "bids",
     output:
         bids_dir=directory(final_bids_dir),
     threads: 1
@@ -504,6 +515,4 @@ rule assemble_final_bids:
     log:
         "logs/assemble_final_bids/assemble.log",
     shell:
-        # Remove existing bids contents but preserve the code directory with validator output
-        "find {output.bids_dir} -mindepth 1 -maxdepth 1 ! -name 'code' -exec rm -rf {{}} + && "
-        "cp -R {params.source_dir}/* {output.bids_dir}/ &> {log}"
+        "cp -R {input.bids_dir} {output.bids_dir} &> {log}"
