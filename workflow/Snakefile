@@ -184,6 +184,9 @@ rule bidsignore_convert_staging:
         lines=config.get("bidsignore", []),
     output:
         ignore=stage_convert / "bids-staging/.bidsignore",
+    resources:
+        mem_mb=4000,
+        runtime=10,
     run:
         with open(output.ignore, "w") as file:
             for item in params.lines:
@@ -325,6 +328,9 @@ rule bidsignore_post_convert_fix_staging:
         lines=config.get("bidsignore", []),
     output:
         ignore=stage_fix / "bids-staging/.bidsignore",
+    resources:
+        mem_mb=4000,
+        runtime=10,
     run:
         with open(output.ignore, "w") as file:
             for item in params.lines:
@@ -497,7 +503,6 @@ rule validate_final:
         "bids-validator-deno {input.bids_dir} --format text &> {output.validator_txt}"
 
 
-# final_bids_dir
 rule assemble_final_bids:
     """
     Assemble the final BIDS dataset by copying from the fixed BIDS directory.
