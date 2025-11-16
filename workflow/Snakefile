@@ -66,13 +66,7 @@ sessions = df[["subject", "session"]].drop_duplicates().session
 
 rule all:
     input:
-        expand(
-            final_bids_dir / "sub-{subject}/ses-{session}",
-            zip,
-            subject=subjects,
-            session=sessions,
-        ),
-        final_bids_dir / "dataset_description.json",
+        final_bids_dir,
         stage_convert / "qc/aggregate_report.html",
         stage_fix / "qc/aggregate_report.html",
 
@@ -164,7 +158,9 @@ rule heudiconv:
         out_info_dir=lambda wildcards: stage_convert
         / "qc/sub-{subject}/ses-{session}".format(**wildcards),
     output:
-        bids_subj_dir=directory(stage_convert / "bids/sub-{subject}/ses-{session}"),
+        bids_subj_dir=directory(
+            stage_convert / "bids-staging/sub-{subject}/ses-{session}"
+        ),
         auto_txt=stage_convert
         / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_auto.txt",
         dicominfo_tsv=stage_convert
@@ -183,11 +179,11 @@ rule heudiconv:
         "scripts/run_heudiconv.py"
 
 
-rule bidsignore_convert:
+rule bidsignore_convert_staging:
     params:
         lines=config.get("bidsignore", []),
     output:
-        ignore=stage_convert / "bids/.bidsignore",
+        ignore=stage_convert / "bids-staging/.bidsignore",
     resources:
         mem_mb=4000,
         runtime=10,
@@ -197,13 +193,13 @@ rule bidsignore_convert:
                 file.write(item + "\n")
 
 
-rule dataset_description_for_convert:
+rule dataset_description_for_convert_staging:
     input:
         "resources/dataset_description.json",
     output:
-        stage_convert / "bids/dataset_description.json",
+        stage_convert / "bids-staging/dataset_description.json",
     log:
-        "logs/dataset_description/init_dataset_description.log",
+        "logs/dataset_description/init_dataset_description_staging.log",
     resources:
         mem_mb=4000,
         runtime=1,
@@ -234,12 +230,30 @@ rule generate_convert_qc_figs:
         "scripts/generate_convert_qc_figs.py"
 
 
-rule validate_converted:
+def get_cmd_cp_subj_dirs(wildcards, input, output):
+
+    cmds = []
+    for subj_dir in input.bids_subj_dirs:
+        # get path to create at output
+        subj_path = Path(subj_dir)
+        rel_path = subj_path.relative_to(subj_path.parents[1])
+        out_path = Path(output.bids_dir) / rel_path
+        cmds.append(f"mkdir -p {out_path}")
+        cmds.append(f"cp -R {subj_path}/* {out_path}/")
+
+    return " && ".join(cmds)
+
+
+rule assemble_convert_bids:
+    """
+    Assemble the converted BIDS dataset from staging directory.
+    This ensures the BIDS directory is always clean and matches the requested subjects.
+    """
     input:
-        dataset_description=stage_convert / "bids/dataset_description.json",
-        ignore=stage_convert / "bids/.bidsignore",
+        dataset_description=stage_convert / "bids-staging/dataset_description.json",
+        ignore=stage_convert / "bids-staging/.bidsignore",
         bids_subj_dirs=expand(
-            stage_convert / "bids/sub-{subject}/ses-{session}",
+            stage_convert / "bids-staging/sub-{subject}/ses-{session}",
             zip,
             subject=subjects,
             session=sessions,
@@ -252,6 +266,24 @@ rule validate_converted:
             session=sessions,
         ),
     params:
+        cmd_cp_subj_dirs=get_cmd_cp_subj_dirs,
+    output:
+        bids_dir=directory(stage_convert / "bids"),
+    threads: 1
+    resources:
+        mem_mb=4000,
+        runtime=60,
+    log:
+        "logs/assemble_convert_bids/assemble.log",
+    shell:
+        "mkdir -p {output.bids_dir} &> {log} && "
+        "cp {input.dataset_description} {output.bids_dir} &>> {log} && "
+        "cp {input.ignore} {output.bids_dir} &>> {log} && "
+        "{params.cmd_cp_subj_dirs}"
+
+
+rule validate_converted:
+    input:
         bids_dir=stage_convert / "bids",
     output:
         validator_json=stage_convert / "qc/bids_validator.json",
@@ -264,8 +296,8 @@ rule validate_converted:
     shell:
         # || true prevents workflow failure when validation errors are found
         # validate twice, to write to log, to txt, and to json
-        "bids-validator-deno {params.bids_dir} --format text &> {log} || true && "
-        "bids-validator-deno {params.bids_dir} --format json_pp -o {output.validator_json} || true"
+        "bids-validator-deno {input.bids_dir} --format text &> {log} || true && "
+        "bids-validator-deno {input.bids_dir} --format json_pp -o {output.validator_json} || true"
 
 
 rule post_convert_fix:
@@ -274,10 +306,10 @@ rule post_convert_fix:
     (defined in config['post_bids_fixes']) sequentially.
     """
     input:
-        bids_subj_dir=stage_convert / "bids/sub-{subject}/ses-{session}",
+        bids_subj_dir=stage_convert / "bids-staging/sub-{subject}/ses-{session}",
         validator_json=stage_convert / "qc/bids_validator.json",
     output:
-        bids_subj_dir=directory(stage_fix / "bids/sub-{subject}/ses-{session}"),
+        bids_subj_dir=directory(stage_fix / "bids-staging/sub-{subject}/ses-{session}"),
         prov_json=stage_fix
         / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_provenance.json",
     params:
@@ -292,11 +324,11 @@ rule post_convert_fix:
         "scripts/post_convert_fix.py"
 
 
-rule bidsignore_post_convert_fix:
+rule bidsignore_post_convert_fix_staging:
     params:
         lines=config.get("bidsignore", []),
     output:
-        ignore=stage_fix / "bids/.bidsignore",
+        ignore=stage_fix / "bids-staging/.bidsignore",
     resources:
         mem_mb=4000,
         runtime=10,
@@ -306,13 +338,13 @@ rule bidsignore_post_convert_fix:
                 file.write(item + "\n")
 
 
-rule dataset_description_fixed:
+rule dataset_description_fixed_staging:
     input:
-        dd_json=stage_convert / "bids/dataset_description.json",
+        dd_json=stage_convert / "bids-staging/dataset_description.json",
     output:
-        dd_json=stage_fix / "bids/dataset_description.json",
+        dd_json=stage_fix / "bids-staging/dataset_description.json",
     log:
-        "logs/fix/dataset_description.log",
+        "logs/fix/dataset_description_staging.log",
     threads: 1
     resources:
         mem_mb=4000,
@@ -321,17 +353,46 @@ rule dataset_description_fixed:
         "cp {input.dd_json} {output.dd_json} &> {log}"
 
 
-rule validate_fixed:
+rule assemble_fix_bids:
+    """
+    Assemble the fixed BIDS dataset from staging directory.
+    This ensures the BIDS directory is always clean and matches the requested subjects.
+    """
     input:
-        dataset_description=stage_fix / "bids/dataset_description.json",
-        ignore=stage_fix / "bids/.bidsignore",
+        dataset_description=stage_fix / "bids-staging/dataset_description.json",
+        ignore=stage_fix / "bids-staging/.bidsignore",
         bids_subj_dirs=expand(
-            stage_fix / "bids/sub-{subject}/ses-{session}",
+            stage_fix / "bids-staging/sub-{subject}/ses-{session}",
+            zip,
+            subject=subjects,
+            session=sessions,
+        ),
+        prov_jsons=expand(
+            stage_fix
+            / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_provenance.json",
             zip,
             subject=subjects,
             session=sessions,
         ),
     params:
+        cmd_cp_subj_dirs=get_cmd_cp_subj_dirs,
+    output:
+        bids_dir=directory(stage_fix / "bids"),
+    threads: 1
+    resources:
+        mem_mb=4000,
+        runtime=60,
+    log:
+        "logs/assemble_fix_bids/assemble.log",
+    shell:
+        "mkdir -p {output.bids_dir} &>> {log} && "
+        "cp {input.dataset_description} {output.bids_dir} &>> {log} && "
+        "cp {input.ignore} {output.bids_dir} &>> {log} && "
+        "{params.cmd_cp_subj_dirs}"
+
+
+rule validate_fixed:
+    input:
         bids_dir=stage_fix / "bids",
     output:
         validator_json=stage_fix / "qc/bids_validator.json",
@@ -344,11 +405,29 @@ rule validate_fixed:
     shell:
         # || true prevents workflow failure when validation errors are found
         # validate twice, to write to log, to txt, and to json
-        "bids-validator-deno {params.bids_dir} --format text &> {log} || true && "
-        "bids-validator-deno {params.bids_dir} --format json_pp -o {output.validator_json} || true"
+        "bids-validator-deno {input.bids_dir} --format text &> {log} || true && "
+        "bids-validator-deno {input.bids_dir} --format json_pp -o {output.validator_json} || true"
 
 
-rule subject_report:
+rule subject_report_convert:
+    """Generate individual QC report for a single subject/session"""
+    input:
+        series_tsv=stage_convert
+        / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series.tsv",
+    output:
+        html_report=stage_convert
+        / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_report.html",
+    log:
+        "logs/subject_report_convert/sub-{subject}_ses-{session}.log",
+    threads: 1
+    resources:
+        mem_mb=4000,
+        runtime=10,
+    script:
+        "scripts/generate_subject_report.py"
+
+
+rule subject_report_fix:
     """Generate individual QC report for a single subject/session"""
     input:
         series_tsv=stage_convert
@@ -359,7 +438,7 @@ rule subject_report:
         html_report=stage_fix
         / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_report.html",
     log:
-        "logs/subject_report/sub-{subject}_ses-{session}.log",
+        "logs/subject_report_fix/sub-{subject}_ses-{session}.log",
     threads: 1
     resources:
         mem_mb=4000,
@@ -379,7 +458,7 @@ rule aggregate_report_convert:
             session=sessions,
         ),
         subject_reports=expand(
-            stage_fix
+            stage_convert
             / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_report.html",
             zip,
             subject=subjects,
@@ -432,59 +511,32 @@ rule validate_final:
     """final validation before copying, fails if invalid"""
     input:
         validator_json=stage_fix / "qc/bids_validator.json",
-    params:
         bids_dir=stage_fix / "bids",
     output:
-        validator_txt=final_bids_dir / "code" / "bids_validator.txt",  #require validated
+        validator_txt=stage_fix / "qc/final_bids_validator.txt",  # require validated
     threads: 1
     resources:
         mem_mb=4000,
         runtime=10,
     shell:
-        "bids-validator-deno {params.bids_dir} --format text &> {output.validator_txt}"
+        "bids-validator-deno {input.bids_dir} --format text &> {output.validator_txt}"
 
 
-# final_bids_dir
-rule final_bids_subj:
+rule assemble_final_bids:
+    """
+    Assemble the final BIDS dataset by copying from the fixed BIDS directory.
+    This ensures the final BIDS directory is always clean and matches the requested subjects.
+    """
     input:
-        validator=final_bids_dir / "code" / "bids_validator.txt",  #require validated
-        bids_subj_dir=stage_fix / "bids/sub-{subject}/ses-{session}",
+        validator_txt=stage_fix / "qc/final_bids_validator.txt",  # require validated
+        bids_dir=stage_fix / "bids",
     output:
-        bids_subj_dir=directory(final_bids_dir / "sub-{subject}/ses-{session}"),
-    threads: 1
-    resources:
-        mem_mb=4000,
-        runtime=10,
-    log:
-        "logs/final_bids_subj/sub-{subject}_ses-{session}.log",
-    shell:
-        "cp -R {input.bids_subj_dir} {output.bids_subj_dir} &> {log}"
-
-
-rule bidsignore_final:
-    input:
-        ignore=stage_fix / "bids/.bidsignore",
-    output:
-        ignore=final_bids_dir / ".bidsignore",
-    resources:
-        mem_mb=4000,
-        runtime=10,
-    shell:
-        "cp {input} {output}"
-
-
-rule final_dataset_description:
-    input:
-        validator=final_bids_dir / "code" / "bids_validator.txt",  #require validated
-        dd_json=stage_fix / "bids/dataset_description.json",
-        ignore=final_bids_dir / ".bidsignore",
-    output:
-        dd_json=final_bids_dir / "dataset_description.json",
+        bids_dir=directory(final_bids_dir),
     threads: 1
     resources:
         mem_mb=4000,
         runtime=10,
     log:
-        "logs/dataset_description/final_dataset_description.log",
+        "logs/assemble_final_bids/assemble.log",
     shell:
-        "cp {input.dd_json} {output.dd_json} &> {log}"
+        "cp -R {input.bids_dir} {output.bids_dir} &> {log}"
