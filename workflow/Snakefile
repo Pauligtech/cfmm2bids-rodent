@@ -278,6 +278,7 @@ rule assemble_convert_bids:
     shell:
         "mkdir -p {output.bids_dir} && "
         "cp {input.dataset_description} {output.bids_dir} && "
+        "cp {input.ignore} {output.bids_dir} && "
         "{params.cmd_cp_subj_dirs}"
 
 
