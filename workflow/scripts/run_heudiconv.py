@@ -5,6 +5,15 @@ This script handles both single-study and multi-study cases automatically.
 It is called via the script: directive from the heudiconv rule.
 """
 
+
+# ruff: noqa: E402
+
+from lib.utils import setup_logger
+
+log_file = snakemake.log[0] if snakemake.log else None
+logger = setup_logger(log_file)
+
+
 from pathlib import Path
 
 from lib.convert import (
@@ -12,10 +21,6 @@ from lib.convert import (
     process_multi_study_heudiconv,
     process_single_study_heudiconv,
 )
-from lib.utils import setup_logger
-
-log_file = snakemake.log[0] if snakemake.log else None
-logger = setup_logger(log_file)
 
 
 def is_multi_study_case(dicoms_dir: Path) -> bool:
