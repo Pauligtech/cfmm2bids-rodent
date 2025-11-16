@@ -62,7 +62,7 @@ def load_json_file(json_file, file_type="JSON"):
         return None
 
 
-def create_html_report(subject, session, series_df, provenance_data):
+def create_html_report(subject, session, series_df, provenance_data=None):
     """
     Create HTML report for a single subject/session.
 
@@ -347,11 +347,16 @@ series_tsv_file = snakemake.input.series_tsv
 series_df = load_series_tsv(series_tsv_file)
 
 # Load provenance JSON file
-provenance_file = snakemake.input.provenance_json
-provenance_data = load_json_file(provenance_file, "provenance JSON")
+prov_json = snakemake.input.get("provenance_json", False)
+if prov_json:
+    provenance_data = load_json_file(prov_json, "provenance JSON")
 
-# Create HTML report
-html_content = create_html_report(subject, session, series_df, provenance_data)
+    # Create HTML report
+    html_content = create_html_report(subject, session, series_df, provenance_data)
+else:
+    # Create HTML report
+    html_content = create_html_report(subject, session, series_df)
+
 
 # Write output
 output_path = snakemake.output.html_report

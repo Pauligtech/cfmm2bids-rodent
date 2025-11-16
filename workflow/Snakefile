@@ -408,7 +408,25 @@ rule validate_fixed:
         "bids-validator-deno {input.bids_dir} --format json_pp -o {output.validator_json} || true"
 
 
-rule subject_report:
+rule subject_report_convert:
+    """Generate individual QC report for a single subject/session"""
+    input:
+        series_tsv=stage_convert
+        / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_series.tsv",
+    output:
+        html_report=stage_convert
+        / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_report.html",
+    log:
+        "logs/subject_report_convert/sub-{subject}_ses-{session}.log",
+    threads: 1
+    resources:
+        mem_mb=4000,
+        runtime=10,
+    script:
+        "scripts/generate_subject_report.py"
+
+
+rule subject_report_fix:
     """Generate individual QC report for a single subject/session"""
     input:
         series_tsv=stage_convert
@@ -419,7 +437,7 @@ rule subject_report:
         html_report=stage_fix
         / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_report.html",
     log:
-        "logs/subject_report/sub-{subject}_ses-{session}.log",
+        "logs/subject_report_fix/sub-{subject}_ses-{session}.log",
     threads: 1
     resources:
         mem_mb=4000,
@@ -439,7 +457,7 @@ rule aggregate_report_convert:
             session=sessions,
         ),
         subject_reports=expand(
-            stage_fix
+            stage_convert
             / "qc/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_report.html",
             zip,
             subject=subjects,
