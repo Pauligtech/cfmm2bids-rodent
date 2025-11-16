@@ -51,11 +51,11 @@ def infotodict(seqinfo):
     t2w_gre = create_key(
         "sub-{subject}/{session}/anat/sub-{subject}_{session}_acq-GRE_run-{item:01d}_T2w"
     )
-    t1w_pregad = create_key(
-        "sub-{subject}/{session}/anat/sub-{subject}_{session}_acq-pregad_run-{item:01d}_T1w"
+    t2w_pregad = create_key(
+        "sub-{subject}/{session}/anat/sub-{subject}_{session}_acq-PreGadGRE_run-{item:01d}_T2w"
     )
-    t1w_postgad = create_key(
-        "sub-{subject}/{session}/anat/sub-{subject}_{session}_acq-postgad_run-{item:01d}_T1w"
+    t2w_postgad = create_key(
+        "sub-{subject}/{session}/anat/sub-{subject}_{session}_acq-PreGadGRE_run-{item:01d}_T2w"
     )
     t2w_rare_orig = create_key(
         "sub-{subject}/{session}/anat/sub-{subject}_{session}_acq-RARE_rec-orig_run-{item:01d}_T2w"
@@ -103,8 +103,8 @@ def infotodict(seqinfo):
         t2starw_swi: [],
         t2starw_phase: [],
         tof: [],
-        t1w_pregad: [],
-        t1w_postgad: [],
+        t2w_pregad: [],
+        t2w_postgad: [],
         func_resting_R: [],
         func_resting_RV: [],
         dwi: [],
@@ -155,27 +155,45 @@ def infotodict(seqinfo):
         elif pos == 1:
             info[t2w_rare_den].append(s.series_id)
 
+    # For GRE, these can either be regular anatomicals, or can be pre/post gad
+    #  if pre/post gad is included in the label then it is dealt with later, but
+    # this is left out in one protocol. In this protocol, there are 7 scans,
+    # with first 2 pre-gad, last 5 post-gad.
+    gre_candidates = []
+    for s in seqinfo:
+        if "Gre3Dinvivo" in s.series_description:
+            gre_candidates.append(s)
+    #
+    # Sort by series_id to ensure acquisition order
+    gre_candidates = sorted(gre_candidates, key=lambda x: x.series_id)
+
+    gre_handled_as_pre_post_gad = False
+    if len(gre_candidates) > 1:
+        # if the final one has Post in the protocol name, then we go ahead and
+        # label these Pre and Post Gad
+        if "post" in gre_candidates[-1].series_description.lower():
+            gre_handled_as_pre_post_gad = True
+            for s in gre_candidates:
+                if "post" in s.series_description.lower():
+                    info[t2w_postgad].append(s.series_id)
+                else:
+                    info[t2w_pregad].append(s.series_id)
     # ---------------------------------------------------------------------------------------
 
-    # extract the digits of the name to separate
-    # you can even add the videos
-    # magnitude data has name: 170001, phase: 170002
-    # reverse phase and normal phase
-    # we need the json files as well
-    # TODO: no of volumes
-    # trying to get the denopised version which is usually x0002
     for _idx, s in enumerate(seqinfo):
-        if "tse2d" in s.series_description:
+        if "Gre3Dinvivo" in s.series_description and gre_handled_as_pre_post_gad:
+            continue
+        elif "tse2d" in s.series_description:
             info[t2w_tse].append(s.series_id)
 
-        if "Gre3D" in s.series_description:
+        elif "Gre3D" in s.series_description:
             info[t2w_gre].append(s.series_id)
 
         elif "PreGad" in s.series_description:
-            info[t1w_pregad].append(s.series_id)
+            info[t2w_pregad].append(s.series_id)
 
         elif "PostGad" in s.series_description:
-            info[t1w_postgad].append(s.series_id)
+            info[t2w_postgad].append(s.series_id)
 
         elif "TOF3D" in s.series_description:
             info[tof].append(s.series_id)
@@ -188,7 +206,7 @@ def infotodict(seqinfo):
                 info[func_resting_R].append(s.series_id)
 
         # ==================================================diffusion========================================================
-        if "DWI" in s.series_description:
+        elif "DWI" in s.series_description:
             info[dwi].append(s.series_id)
 
     return info
