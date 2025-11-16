@@ -41,8 +41,16 @@ def setup_logger(log_file=None):
         handler = logging.FileHandler(log_file)
     else:
         handler = logging.StreamHandler(sys.stderr)
+
     handler.setFormatter(formatter)
+
+    # Attach handler to THIS logger
     logger.addHandler(handler)
+
+    # ⭐ IMPORTANT: attach handler to the ROOT logger too
+    root = logging.getLogger()
+    root.setLevel(logging.INFO)
+    root.addHandler(handler)
 
     if log_file:
         # Redirect stdout and stderr to the same log file

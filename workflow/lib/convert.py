@@ -4,14 +4,20 @@ import ast
 import logging
 import shutil
 import stat
+import subprocess
 from collections import defaultdict
 from pathlib import Path
 from pprint import pprint
 
 import pandas as pd
-from snakemake.shell import shell
 
 logger = logging.getLogger(__name__)
+
+root = logging.getLogger()
+if not root.handlers:
+    raise RuntimeError("No root handlers configured")
+
+log_fh = root.handlers[0].stream
 
 
 def find_tar_files(dicoms_dir: Path) -> list[Path]:
@@ -92,13 +98,12 @@ def run_heudiconv_for_study(
         cmd.extend(heudiconv_options.split())
 
     logger.info(f"Running heudiconv: {' '.join(cmd)}")
-    shell(" ".join(cmd))
-    #    result = subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(cmd, stdout=log_fh, stderr=log_fh, text=True)
 
-    #   if result.returncode != 0:
-    #       logger.error(f"heudiconv failed for study {study_uid}:")
-    #       logger.error(result.stderr)
-    #       raise RuntimeError(f"heudiconv failed for study {study_uid}")
+    if result.returncode != 0:
+        logger.error(f"heudiconv failed for study {study_uid}:")
+        logger.error(result.stderr)
+        raise RuntimeError(f"heudiconv failed for study {study_uid}")
 
     # Locate the heudiconv info files
     heudiconv_info_dir = (
