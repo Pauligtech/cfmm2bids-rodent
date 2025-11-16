@@ -276,9 +276,9 @@ rule assemble_convert_bids:
     log:
         "logs/assemble_convert_bids/assemble.log",
     shell:
-        "mkdir -p {output.bids_dir} && "
-        "cp {input.dataset_description} {output.bids_dir} && "
-        "cp {input.ignore} {output.bids_dir} && "
+        "mkdir -p {output.bids_dir} &> {log} && "
+        "cp {input.dataset_description} {output.bids_dir} &>> {log} && "
+        "cp {input.ignore} {output.bids_dir} &>> {log} && "
         "{params.cmd_cp_subj_dirs}"
 
 
@@ -388,7 +388,7 @@ rule assemble_fix_bids:
         "mkdir -p {output.bids_dir} &>> {log} && "
         "cp {input.dataset_description} {output.bids_dir} &>> {log} && "
         "cp {input.ignore} {output.bids_dir} &>> {log} && "
-        "{params.cmd_cp_subj_dirs} &>> {log}"
+        "{params.cmd_cp_subj_dirs}"
 
 
 rule validate_fixed:
