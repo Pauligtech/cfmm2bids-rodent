@@ -157,7 +157,7 @@ rule heudiconv:
     input:
         dicoms_dir=rules.cfmm2tar.output.dicoms_dir,
         heuristic=config["heuristic"],
-        base_heuristics=config.get("base_heuristics",[]),
+        base_heuristics=config.get("base_heuristics", []),
         dcmconfig_json=config["dcmconfig_json"],
     params:
         heudiconv_options=config["heudiconv_options"],
@@ -182,11 +182,12 @@ rule heudiconv:
     script:
         "scripts/run_heudiconv.py"
 
+
 rule bidsignore_convert:
     params:
-        lines=config.get("bidsignore",[])
+        lines=config.get("bidsignore", []),
     output:
-        ignore=stage_convert / "bids/.bidsignore"
+        ignore=stage_convert / "bids/.bidsignore",
     resources:
         mem_mb=4000,
         runtime=10,
@@ -194,7 +195,6 @@ rule bidsignore_convert:
         with open(output.ignore, "w") as file:
             for item in params.lines:
                 file.write(item + "\n")
-
 
 
 rule dataset_description_for_convert:
@@ -294,9 +294,9 @@ rule post_convert_fix:
 
 rule bidsignore_post_convert_fix:
     params:
-        lines=config.get("bidsignore",[])
+        lines=config.get("bidsignore", []),
     output:
-        ignore=stage_fix / "bids/.bidsignore"
+        ignore=stage_fix / "bids/.bidsignore",
     resources:
         mem_mb=4000,
         runtime=10,
@@ -319,6 +319,7 @@ rule dataset_description_fixed:
         runtime=10,
     shell:
         "cp {input.dd_json} {output.dd_json} &> {log}"
+
 
 rule validate_fixed:
     input:
@@ -345,7 +346,6 @@ rule validate_fixed:
         # validate twice, to write to log, to txt, and to json
         "bids-validator-deno {params.bids_dir} --format text &> {log} || true && "
         "bids-validator-deno {params.bids_dir} --format json_pp -o {output.validator_json} || true"
-
 
 
 rule subject_report:
@@ -435,7 +435,7 @@ rule validate_final:
     params:
         bids_dir=stage_fix / "bids",
     output:
-        validator_txt=final_bids_dir / "code" /  "bids_validator.txt",  #require validated
+        validator_txt=final_bids_dir / "code" / "bids_validator.txt",  #require validated
     threads: 1
     resources:
         mem_mb=4000,
@@ -444,12 +444,10 @@ rule validate_final:
         "bids-validator-deno {params.bids_dir} --format text &> {output.validator_txt}"
 
 
-
-
 # final_bids_dir
 rule final_bids_subj:
     input:
-        validator=final_bids_dir / "code" /  "bids_validator.txt",  #require validated
+        validator=final_bids_dir / "code" / "bids_validator.txt",  #require validated
         bids_subj_dir=stage_fix / "bids/sub-{subject}/ses-{session}",
     output:
         bids_subj_dir=directory(final_bids_dir / "sub-{subject}/ses-{session}"),
@@ -462,11 +460,12 @@ rule final_bids_subj:
     shell:
         "cp -R {input.bids_subj_dir} {output.bids_subj_dir} &> {log}"
 
+
 rule bidsignore_final:
     input:
-        ignore=stage_fix / "bids/.bidsignore"
+        ignore=stage_fix / "bids/.bidsignore",
     output:
-        ignore=final_bids_dir / ".bidsignore"
+        ignore=final_bids_dir / ".bidsignore",
     resources:
         mem_mb=4000,
         runtime=10,
@@ -476,9 +475,9 @@ rule bidsignore_final:
 
 rule final_dataset_description:
     input:
-        validator=final_bids_dir / "code" /  "bids_validator.txt",  #require validated
+        validator=final_bids_dir / "code" / "bids_validator.txt",  #require validated
         dd_json=stage_fix / "bids/dataset_description.json",
-        ignore=final_bids_dir / ".bidsignore"
+        ignore=final_bids_dir / ".bidsignore",
     output:
         dd_json=final_bids_dir / "dataset_description.json",
     threads: 1
