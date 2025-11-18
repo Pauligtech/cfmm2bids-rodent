@@ -16,6 +16,11 @@ A Snakemake workflow for converting CFMM DICOM data to BIDS format using heudico
 
 The workflow is organized into 5 main processing stages plus a final copy stage, each producing intermediate outputs:
 
+**Note on BIDS staging:** The convert and fix stages use a two-step assembly process:
+1. Individual subject/session data is first written to `bids-staging/sub-*/ses-*/` directories
+2. All requested subjects are then assembled into a single `bids/` directory
+This ensures the BIDS dataset is always clean and matches the requested subjects, making it easier to add/remove subjects without leftover files.
+
 ### 1. Query Stage (`results/0_query`)
 Queries DICOM studies from CFMM using search specifications defined in `config/config.yaml`. Features include:
 - Multiple search specifications with different query parameters
@@ -34,22 +39,27 @@ Post-filters the queried studies based on include/exclude rules. Features includ
 Output: `studies_filtered.tsv` - Filtered list of studies to process
 
 ### 3. Download Stage (`results/2_download`)
-Downloads DICOM studies from CFMM using `cfmm2tar`.
+Downloads DICOM studies from CFMM using `cfmm2tar`. When `merge_duplicate_studies: true` is enabled, multiple studies for the same subject/session are downloaded as separate tar files in the same directory.
 
-Output: `dicoms/sub-*/ses-*/` - Downloaded DICOM files
+Output: `dicoms/sub-*/ses-*/` - Downloaded DICOM files (tar archives)
 
 ### 4. Convert Stage (`results/3_convert`)
 Converts DICOMs to BIDS format using heudiconv and generates QC reports. Features include:
 - BIDS conversion with heudiconv and custom heuristic
+- Automatic handling of duplicate studies (when `merge_duplicate_studies: true`):
+  - Each tar file (study) is processed separately with heudiconv
+  - Outputs are automatically merged into a single session
+  - A `study_uid` column is added to dicominfo.tsv to track series origin
 - QC report generation (series list and unmapped summary)
 - BIDS validation with `bids-validator-deno`
-- Metadata preservation (auto.txt, dicominfo.tsv, filegroup.json)
+- Metadata preservation (auto.txt, dicominfo.tsv)
 
 Outputs:
-- `bids/sub-*/ses-*/` - BIDS-formatted data
-- `info/sub-*/ses-*/` - Heudiconv metadata files
-- `qc/sub-*/ses-*/` - QC reports (series.svg, unmapped.svg)
+- `bids-staging/sub-*/ses-*/` - Intermediate BIDS-formatted data per subject/session
+- `bids/` - Assembled BIDS dataset (all subjects combined)
+- `qc/sub-*/ses-*/` - Heudiconv metadata and QC reports (auto.txt, dicominfo.tsv, series.svg, unmapped.svg)
 - `qc/bids_validator.json` - BIDS validation results
+- `qc/aggregate_report.html` - Aggregate QC report for all sessions
 
 ### 5. Fix Stage (`results/4_fix`)
 Applies post-conversion fixes to the BIDS dataset. Available fix actions:
@@ -58,9 +68,11 @@ Applies post-conversion fixes to the BIDS dataset. Available fix actions:
 - **fix_orientation**: Reorient NIfTI files to canonical RAS+ orientation
 
 Outputs:
-- `bids/sub-*/ses-*/` - Fixed BIDS data
-- `info/sub-*/ses-*/sub-*_ses-*_provenance.json` - Fix provenance tracking
+- `bids-staging/sub-*/ses-*/` - Intermediate fixed BIDS data per subject/session
+- `bids/` - Assembled fixed BIDS dataset (all subjects combined)
+- `qc/sub-*/ses-*/sub-*_ses-*_provenance.json` - Fix provenance tracking
 - `qc/bids_validator.json` - Post-fix BIDS validation results
+- `qc/aggregate_report.html` - Aggregate QC report including fix provenance
 
 ### 6. Final Stage (`bids/`)
 Copies the validated and fixed BIDS dataset to the final output directory.
@@ -75,10 +87,11 @@ The workflow automatically generates QC reports for each subject/session after h
    - Image dimensions
    - TR and TE values
    - Corresponding BIDS filename (or "NOT MAPPED" if unmapped)
+   - For merged studies: includes `study_uid` to identify which study each series came from
 
 2. **Unmapped Summary** (`*_unmapped.svg`): A summary of series that were not mapped to BIDS, helping identify potential missing data or heuristic issues
 
-QC reports are saved in the convert stage: `results/3_convert/qc/sub-{subject}/ses-{session}/`
+QC reports are saved in: `results/3_convert/qc/sub-{subject}/ses-{session}/`
 
 **Note:** The QC report generation is integrated into the Snakemake workflow as a script directive and cannot be run manually as a standalone CLI tool.
 
@@ -135,14 +148,17 @@ study_filter_specs:
 - `credentials_file`: Path to CFMM credentials file
 - `merge_duplicate_studies`: If `true`, automatically merge multiple studies for the same subject/session (default: `false`)
 
-#### Merging Multiple Studies
+#### Merging Duplicate Studies
 
 When `merge_duplicate_studies: true` is enabled and multiple studies match the same subject/session:
+- All study tar files are downloaded to the same directory
 - Each study's DICOM tar file is processed separately with heudiconv
-- Outputs are automatically merged into a single session
-- Series IDs are offset (incremented by 1000) to prevent conflicts between studies
-- A `study_uid` column is added to track which series came from which study
-- This is useful when subjects have multiple scan sessions on the same day (e.g., due to console reboot)
+- Outputs from each study are automatically merged into a single session:
+  - BIDS NIfTI and JSON files from all studies are combined
+  - The `auto.txt` files are merged (all series info concatenated)
+  - The `dicominfo.tsv` files are merged with a `study_uid` column added to track which series came from which study
+- This is useful when subjects have multiple scan sessions on the same day (e.g., due to console reboot or scanner issues)
+- If disabled and duplicates are found, the workflow will fail with an error message
 
 ### Convert Configuration
 - `heuristic`: Path to heudiconv heuristic file
@@ -276,28 +292,41 @@ bids/                           # Final BIDS-formatted output
 ```
 results/
 ├── 0_query/
-│   └── studies.tsv                    # All queried studies
+│   └── studies.tsv                              # All queried studies
 ├── 1_filter/
-│   └── studies_filtered.tsv           # Filtered studies to process
+│   └── studies_filtered.tsv                     # Filtered studies to process
 ├── 2_download/
 │   └── dicoms/
-│       └── sub-*/ses-*/               # Downloaded DICOM files
+│       └── sub-*/ses-*/                         # Downloaded DICOM tar files
 ├── 3_convert/
-│   ├── bids/
-│   │   └── sub-*/ses-*/               # Initial BIDS conversion
-│   ├── info/
-│   │   └── sub-*/ses-*/               # Heudiconv metadata (auto.txt, dicominfo.tsv, etc.)
+│   ├── bids-staging/
+│   │   ├── dataset_description.json            # BIDS dataset metadata
+│   │   ├── .bidsignore                         # BIDS ignore file
+│   │   └── sub-*/ses-*/                        # Per-subject/session BIDS data (intermediate)
+│   ├── bids/                                   # Assembled BIDS dataset (all subjects)
 │   └── qc/
-│       ├── sub-*/ses-*/               # QC reports (series.svg, unmapped.svg)
-│       └── bids_validator.json        # BIDS validation results
+│       ├── sub-*/ses-*/                        # Per-subject/session QC and metadata
+│       │   ├── sub-*_ses-*_auto.txt           # Heudiconv auto conversion info
+│       │   ├── sub-*_ses-*_dicominfo.tsv      # Heudiconv DICOM metadata table
+│       │   ├── sub-*_ses-*_series.tsv         # Series info table
+│       │   ├── sub-*_ses-*_series.svg         # Series QC visualization
+│       │   ├── sub-*_ses-*_unmapped.svg       # Unmapped series visualization
+│       │   └── sub-*_ses-*_report.html        # Individual subject/session report
+│       ├── bids_validator.json                # BIDS validation results
+│       └── aggregate_report.html              # Aggregate QC report
 └── 4_fix/
-    ├── bids/
-    │   └── sub-*/ses-*/               # Fixed BIDS data
-    ├── info/
-    │   └── sub-*/ses-*/               # Fix provenance files
+    ├── bids-staging/
+    │   ├── dataset_description.json            # BIDS dataset metadata
+    │   ├── .bidsignore                         # BIDS ignore file
+    │   └── sub-*/ses-*/                        # Per-subject/session fixed BIDS data (intermediate)
+    ├── bids/                                   # Assembled fixed BIDS dataset (all subjects)
     └── qc/
-        ├── bids_validator.json        # Post-fix validation results
-        └── aggregate_report.html      # Aggregate QC report for all sessions
+        ├── sub-*/ses-*/                        # Per-subject/session provenance
+        │   ├── sub-*_ses-*_provenance.json    # Fix provenance tracking
+        │   └── sub-*_ses-*_report.html        # Individual subject/session report with fixes
+        ├── bids_validator.json                # Post-fix validation results
+        ├── final_bids_validator.txt           # Final validation (must pass)
+        └── aggregate_report.html              # Aggregate QC report with fix provenance
 ```
 
 ## Repository Directory Structure
@@ -307,10 +336,14 @@ results/
 │   ├── lib/                   # Python modules
 │   │   ├── query_filter.py   # DICOM query and filtering functions
 │   │   ├── bids_fixes.py     # Post-conversion fix implementations
+│   │   ├── convert.py        # Heudiconv conversion helpers (single/multi-study)
 │   │   └── utils.py          # Utility functions
 │   └── scripts/               # Workflow scripts
-│       ├── generate_convert_qc_figs.py  # QC report generation
-│       └── post_convert_fix.py          # Post-conversion fix application
+│       ├── run_heudiconv.py                   # Run heudiconv (handles single/multi-study)
+│       ├── generate_convert_qc_figs.py       # QC report generation
+│       ├── generate_subject_report.py        # Individual subject/session reports
+│       ├── generate_aggregate_all_report.py  # Aggregate QC report
+│       └── post_convert_fix.py               # Post-conversion fix application
 ├── heuristics/                 # Heudiconv heuristic files
 │   ├── cfmm_base.py           # Base CFMM heuristic (supports DIS2D/DIS3D reconstruction)
 │   ├── trident_15T.py         # Trident 15T scanner-specific heuristic
@@ -318,8 +351,12 @@ results/
 ├── resources/                  # Resource files
 │   ├── dcm2niix_config.json   # dcm2niix configuration
 │   └── dataset_description.json  # BIDS dataset metadata template
+├── heuristics/                 # Heudiconv heuristics
+│   ├── cfmm_base.py           # Base heuristic for CFMM data
+│   ├── trident_15T.py         # Example: Trident 15T scanner heuristic
+│   └── Menon_CogMSv2.py       # Example: CogMS study heuristic
 ├── config/                     # Configuration files
-│   ├── config.yaml            # Configuration template (customize this)
+│   ├── config.yml             # Configuration template (customize this)
 │   ├── config_trident15T.yml  # Example: Trident 15T scanner configuration
 │   └── config_cogms.yml       # Example: CogMS study configuration
 └── pixi.toml                  # Pixi project configuration and dependencies
