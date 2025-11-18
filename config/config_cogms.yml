@@ -72,7 +72,11 @@ study_filter_specs:
     # If you prefer custom labels like 'baseline' instead of '0m':
     time_to_label:
       0: 'baseline'
-        
+  exclude_post_remap:
+    - subject == '103' and session =='6m' #no dicoms error
+    - subject == '104' and session =='baseline' #no dicoms error
+
+       
 
 # 3. download
 cfmm2tar_download_options: ''

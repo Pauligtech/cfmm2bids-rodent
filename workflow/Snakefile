@@ -172,7 +172,7 @@ rule heudiconv:
     threads: 16
     resources:
         mem_mb=16000,
-        runtime=30,
+        runtime=60,
     group:
         "convert"
     script:
@@ -234,12 +234,24 @@ def get_cmd_cp_subj_dirs(wildcards, input, output):
 
     cmds = []
     for subj_dir in input.bids_subj_dirs:
-        # get path to create at output
         subj_path = Path(subj_dir)
         rel_path = subj_path.relative_to(subj_path.parents[1])
         out_path = Path(output.bids_dir) / rel_path
+
+        # Create the corresponding base dir for this subject
         cmds.append(f"mkdir -p {out_path}")
-        cmds.append(f"cp -R {subj_path}/* {out_path}/")
+
+        # 1) Create all directories from subj_path inside out_path
+        cmds.append(
+            f"find {subj_path} -type d -printf '%P\n' | "
+            f'while read d; do mkdir -p {out_path}/"$d"; done'
+        )
+
+        # 2) Create symlinks for all files
+        cmds.append(
+            f"find {subj_path} -type f -printf '%P\n' | "
+            f'while read f; do ln -sf {subj_path}/"$f" {out_path}/"$f"; done'
+        )
 
     return " && ".join(cmds)
 
@@ -277,8 +289,8 @@ rule assemble_convert_bids:
         "logs/assemble_convert_bids/assemble.log",
     shell:
         "mkdir -p {output.bids_dir} &> {log} && "
-        "cp {input.dataset_description} {output.bids_dir} &>> {log} && "
-        "cp {input.ignore} {output.bids_dir} &>> {log} && "
+        "ln -s {input.dataset_description} {output.bids_dir} &>> {log} && "
+        "ln -s {input.ignore} {output.bids_dir} &>> {log} && "
         "{params.cmd_cp_subj_dirs}"
 
 
@@ -422,7 +434,7 @@ rule subject_report_convert:
     threads: 1
     resources:
         mem_mb=4000,
-        runtime=10,
+        runtime=30,
     script:
         "scripts/generate_subject_report.py"
 
@@ -442,7 +454,7 @@ rule subject_report_fix:
     threads: 1
     resources:
         mem_mb=4000,
-        runtime=10,
+        runtime=30,
     script:
         "scripts/generate_subject_report.py"
 
