@@ -173,8 +173,6 @@ rule heudiconv:
     resources:
         mem_mb=16000,
         runtime=60,
-    group:
-        "convert"
     script:
         "scripts/run_heudiconv.py"
 
@@ -223,9 +221,7 @@ rule generate_convert_qc_figs:
     threads: 1
     resources:
         mem_mb=4000,
-        runtime=10,
-    group:
-        "convert"
+        runtime=30,
     script:
         "scripts/generate_convert_qc_figs.py"
 
@@ -302,7 +298,7 @@ rule validate_converted:
     threads: 1
     resources:
         mem_mb=4000,
-        runtime=10,
+        runtime=60,
     log:
         "logs/convert/validator.txt",
     shell:
@@ -411,7 +407,7 @@ rule validate_fixed:
     threads: 1
     resources:
         mem_mb=4000,
-        runtime=10,
+        runtime=60,
     log:
         "logs/fix/validator.txt",
     shell:
