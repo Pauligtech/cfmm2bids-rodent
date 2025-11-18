@@ -63,10 +63,10 @@ def infotodict(seqinfo):
 
     # Dist. corrected versions:
     DIS3D_inv1_mp2rage = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_inv-1_rec-DIS3D_run-{item:01d}_MP2RAGE"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_rec-DIS3D_inv-1_run-{item:01d}_MP2RAGE"
     )
     DIS3D_inv2_mp2rage = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_inv-2_rec-DIS3D_run-{item:01d}_MP2RAGE"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_rec-DIS3D_inv-2_run-{item:01d}_MP2RAGE"
     )
     DIS3D_t1map = create_key(
         "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MP2RAGE_rec-DIS3D_run-{item:01d}_T1map"
@@ -79,10 +79,10 @@ def infotodict(seqinfo):
     )
 
     DIS2D_inv1_mp2rage = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_inv-1_rec-DIS2D_run-{item:01d}_MP2RAGE"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_rec-DIS2D_inv-1_run-{item:01d}_MP2RAGE"
     )
     DIS2D_inv2_mp2rage = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_inv-2_rec-DIS2D_run-{item:01d}_MP2RAGE"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_rec-DIS2D_inv-2_run-{item:01d}_MP2RAGE"
     )
     DIS2D_t1map = create_key(
         "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MP2RAGE_rec-DIS2D_run-{item:01d}_T1map"
