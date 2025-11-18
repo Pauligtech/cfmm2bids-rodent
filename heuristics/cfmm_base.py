@@ -21,7 +21,7 @@ def infotodict(seqinfo):
 
     # MP2RAGE (D)
     # Sa2RAGE (D)
-    # MEMP2RAGE
+    # MEMP2RAGE (D, #)
     # T2 TSE (D,#)
     # multiband BOLD (#)
     # psf-dico BOLD (#)
@@ -32,9 +32,6 @@ def infotodict(seqinfo):
     # TOF Angio (D)
     # ME GRE/susc  (D)
     # DIR T2 (D)
-
-    # to do:
-    # add (D) for MEMP2RAGE
 
     # MP2RAGE
 
@@ -377,19 +374,19 @@ def infotodict(seqinfo):
     )
     # distortion-corrected versions:
     me_t1map_dis2d = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MP2RAGE_run-{item:01d}_T1map"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MP2RAGE_rec-DIS2D_run-{item:01d}_T1map"
     )
     me_t1inv1_ce_dis2d = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_run-{item:01d}_inv-1_MP2RAGE"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_rec-DIS2D_run-{item:01d}_inv-1_MP2RAGE"
     )
     me_t1_ce_dis2d = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MEMP2RAGE_run-{item:01d}_T1w"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MEMP2RAGE_rec-DIS2D_run-{item:01d}_T1w"
     )
     me_t1inv2_ce_dis2d = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_run-{item:01d}_inv-2_MP2RAGE"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_rec-DIS2D_run-{item:01d}_inv-2_MP2RAGE"
     )
     me_t1uni_ce_dis2d = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MEMP2RAGE_run-{item:01d}_UNIT1"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MEMP2RAGE_rec-DIS2D_run-{item:01d}_UNIT1"
     )
 
     # DIR T2 #
