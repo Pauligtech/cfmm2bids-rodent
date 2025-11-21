@@ -6,6 +6,7 @@ Each fix function operates on a Path and a fix specification dict.
 They are auto-registered via the @register_fix decorator.
 """
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -144,6 +145,112 @@ def fix_orientation_quadruped(path: Path, spec: dict) -> bool:
     out_img = nib.Nifti1Image(img.dataobj, affine=affine, header=img.header)
     out_img.to_filename(path)
     return True
+
+
+def _compute_nifti_hash(path: Path) -> str:
+    """Compute hash of NIfTI file data for duplicate detection.
+
+    Loads the NIfTI data and computes MD5 hash of the array data.
+    This is more reliable than file-level hashing as it ignores
+    minor header differences.
+    """
+    img = nib.load(path)
+    data = np.asanyarray(img.dataobj)
+    return hashlib.md5(data.tobytes()).hexdigest()
+
+
+@register_fix("remove_duplicate_niftis")
+def remove_duplicate_niftis(path: Path, spec: dict) -> bool:
+    """Remove duplicate NIfTI files keeping the first one (alphanum sorted).
+
+    This fix should be called with a directory path (e.g., pattern: "*" or ".").
+    It will find all .nii/.nii.gz files in the directory tree, identify
+    duplicates based on image data content, and remove all but the first
+    occurrence (alphanumerically sorted). Corresponding .json sidecars are
+    also removed.
+
+    Note: This fix uses a class variable to ensure it only runs once even
+    if called multiple times (e.g., when pattern matches multiple files).
+    """
+    # Use a class-level flag to ensure we only run once
+    if not hasattr(remove_duplicate_niftis, "_already_run"):
+        remove_duplicate_niftis._already_run = set()
+
+    # Get the root directory (subject/session directory)
+    if path.is_dir():
+        root_dir = path
+    else:
+        # If called on a file, get the root subject/session directory
+        # by going up to find the directory containing this file
+        root_dir = path.parent
+        # Go up until we find a directory that looks like a BIDS subject/session dir
+        while root_dir.parent != root_dir and not (
+            any(p.startswith("sub-") for p in root_dir.parts)
+        ):
+            root_dir = root_dir.parent
+
+    # Convert to string for hashable key
+    root_dir_str = str(root_dir)
+
+    # Skip if we've already processed this directory
+    if root_dir_str in remove_duplicate_niftis._already_run:
+        return False
+
+    remove_duplicate_niftis._already_run.add(root_dir_str)
+
+    # Find all NIfTI files in the directory tree
+    nifti_files = []
+    for pattern in ["**/*.nii", "**/*.nii.gz"]:
+        nifti_files.extend(root_dir.glob(pattern))
+
+    if not nifti_files:
+        return False
+
+    # Sort files alphanumerically
+    nifti_files = sorted(nifti_files, key=lambda p: str(p))
+
+    # Group files by their content hash
+    hash_to_files = {}
+    for nifti_file in nifti_files:
+        try:
+            file_hash = _compute_nifti_hash(nifti_file)
+            if file_hash not in hash_to_files:
+                hash_to_files[file_hash] = []
+            hash_to_files[file_hash].append(nifti_file)
+        except Exception as e:
+            # If we can't read a file, skip it
+            print(f"Warning: Could not compute hash for {nifti_file}: {e}")
+            continue
+
+    # Remove duplicates (keep first, remove rest)
+    files_removed = 0
+    for _file_hash, files in hash_to_files.items():
+        if len(files) > 1:
+            # Keep the first file (already sorted), remove the rest
+            for duplicate_file in files[1:]:
+                # Remove the NIfTI file
+                duplicate_file.unlink()
+                files_removed += 1
+
+                # Remove corresponding JSON sidecar if it exists
+                # Handle both .nii and .nii.gz extensions
+                if duplicate_file.suffix == ".gz" and str(duplicate_file).endswith(
+                    ".nii.gz"
+                ):
+                    # For .nii.gz, replace with .json
+                    json_file = Path(str(duplicate_file)[:-7] + ".json")
+                elif duplicate_file.suffix == ".nii":
+                    # For .nii, replace with .json
+                    json_file = duplicate_file.with_suffix(".json")
+                else:
+                    # Unknown extension, skip
+                    continue
+
+                if json_file.exists():
+                    json_file.unlink()
+                    files_removed += 1
+
+    return files_removed > 0
 
 
 def describe_available_fixes():
