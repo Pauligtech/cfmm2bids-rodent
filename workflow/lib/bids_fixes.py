@@ -153,6 +153,9 @@ def _compute_nifti_hash(path: Path) -> str:
     Loads the NIfTI data and computes MD5 hash of the array data.
     This is more reliable than file-level hashing as it ignores
     minor header differences.
+
+    Note: For very large files, this may be memory-intensive as it
+    loads the entire image into memory.
     """
     img = nib.load(path)
     data = np.asanyarray(img.dataobj)
@@ -169,10 +172,10 @@ def remove_duplicate_niftis(path: Path, spec: dict) -> bool:
     occurrence (alphanumerically sorted). Corresponding .json sidecars are
     also removed.
 
-    Note: This fix uses a class variable to ensure it only runs once even
+    Note: This fix uses a function attribute to ensure it only runs once even
     if called multiple times (e.g., when pattern matches multiple files).
     """
-    # Use a class-level flag to ensure we only run once
+    # Use a function-level flag to ensure we only run once
     if not hasattr(remove_duplicate_niftis, "_already_run"):
         remove_duplicate_niftis._already_run = set()
 
@@ -217,7 +220,7 @@ def remove_duplicate_niftis(path: Path, spec: dict) -> bool:
             if file_hash not in hash_to_files:
                 hash_to_files[file_hash] = []
             hash_to_files[file_hash].append(nifti_file)
-        except Exception as e:
+        except (OSError, ValueError, nib.spatialimages.ImageFileError) as e:
             # If we can't read a file, skip it
             print(f"Warning: Could not compute hash for {nifti_file}: {e}")
             continue
