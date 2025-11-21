@@ -404,6 +404,30 @@ def infotodict(seqinfo):
     )
 
 
+    # distortion-corrected versions:
+    me_t1map_dis3d = create_key(
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MP2RAGE_rec-DIS3D_run-{item:01d}_T1map"
+    )
+    me_t1inv1_ce_dis3d = create_key(
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_rec-DIS3D_run-{item:01d}_inv-1_MP2RAGE"
+    )
+    me_t1_ce_dis3d = create_key(
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MEMP2RAGE_rec-DIS3D_run-{item:01d}_T1w"
+    )
+    me_t1inv2_ce_dis3d = create_key(
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_rec-DIS3D_run-{item:01d}_inv-2_MP2RAGE"
+    )
+    me_t1uni_ce_dis3d = create_key(
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MEMP2RAGE_rec-DIS3D_run-{item:01d}_UNIT1"
+    )
+    me_t1inv1_dis3d = create_key(
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_rec-DIS3D_run-{item:01d}_inv-1_MP2RAGE"
+    )
+    me_t1inv2_dis3d = create_key(
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_rec-DIS3D_run-{item:01d}_inv-2_MP2RAGE"
+    )
+
+
 
     # DIR T2 #
     dir_t2 = create_key(
@@ -457,16 +481,23 @@ def infotodict(seqinfo):
         me_t1inv1_ce: [],
         me_t1inv1: [],
         me_t1inv2: [],
-        me_t1inv1_dis2d: [],
-        me_t1inv2_dis2d: [],
         me_t1_ce: [],
         me_t1inv2_ce: [],
         me_t1uni_ce: [],
+        me_t1inv1_dis2d: [],
+        me_t1inv2_dis2d: [],
         me_t1map_dis2d: [],
         me_t1inv1_ce_dis2d: [],
         me_t1_ce_dis2d: [],
         me_t1inv2_ce_dis2d: [],
         me_t1uni_ce_dis2d: [],
+        me_t1inv1_dis3d: [],
+        me_t1inv2_dis3d: [],
+        me_t1map_dis3d: [],
+        me_t1inv1_ce_dis3d: [],
+        me_t1_ce_dis3d: [],
+        me_t1inv2_ce_dis3d: [],
+        me_t1uni_ce_dis3d: [],
         TOF_angio: [],
         DIS2D_TOF_SAG: [],
         DIS2D_TOF_COR: [],
@@ -552,17 +583,23 @@ def infotodict(seqinfo):
                 if "combEcho" in (s.series_description).strip():
                     if "DIS2D" in s.image_type:
                         info[me_t1_ce_dis2d].append({"item": s.series_id})
+                    elif "DIS3D" in s.image_type:
+                        info[me_t1_ce_dis3d].append({"item": s.series_id})
                     else:
                         info[me_t1_ce].append({"item": s.series_id})
             if "INV1" in (s.series_description).strip():
                 if "combEcho" in (s.series_description).strip():
                     if "DIS2D" in s.image_type:
                         info[me_t1inv1_ce_dis2d].append({"item": s.series_id})
+                    elif "DIS3D" in s.image_type:
+                        info[me_t1inv1_ce_dis3d].append({"item": s.series_id})
                     else:
                         info[me_t1inv1_ce].append({"item": s.series_id})
                 else:
                     if "DIS2D" in s.image_type:
                         info[me_t1inv1_dis2d].append({"item": s.series_id})
+                    elif "DIS3D" in s.image_type:
+                        info[me_t1inv1_dis3d].append({"item": s.series_id})
                     else:
                         info[me_t1inv1].append({"item": s.series_id})
 
@@ -570,11 +607,15 @@ def infotodict(seqinfo):
                 if "combEcho" in (s.series_description).strip():
                     if "DIS2D" in s.image_type:
                         info[me_t1inv2_ce_dis2d].append({"item": s.series_id})
+                    elif "DIS3D" in s.image_type:
+                        info[me_t1inv2_ce_dis3d].append({"item": s.series_id})
                     else:
                         info[me_t1inv2_ce].append({"item": s.series_id})
                 else:
                     if "DIS2D" in s.image_type:
                         info[me_t1inv2_dis2d].append({"item": s.series_id})
+                    elif "DIS3D" in s.image_type:
+                        info[me_t1inv2_dis3d].append({"item": s.series_id})
                     else:
                         info[me_t1inv2].append({"item": s.series_id})
 
@@ -582,11 +623,15 @@ def infotodict(seqinfo):
                 if "combEcho" in (s.series_description).strip():
                     if "DIS2D" in s.image_type:
                         info[me_t1uni_ce_dis2d].append({"item": s.series_id})
+                    elif "DIS3D" in s.image_type:
+                        info[me_t1uni_ce_dis3d].append({"item": s.series_id})
                     else:
                         info[me_t1uni_ce].append({"item": s.series_id})
             if "T1_Images" in (s.series_description).strip():
                 if "DIS2D" in s.image_type:
                     info[me_t1map_dis2d].append({"item": s.series_id})
+                elif "DIS3D" in s.image_type:
+                    info[me_t1map_dis3d].append({"item": s.series_id})
                 else:
                     info[me_t1map].append({"item": s.series_id})
 

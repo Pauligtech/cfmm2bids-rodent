@@ -1,5 +1,5 @@
 credentials_file: ~/.uwo_credentials.bd
-final_bids_dir: "/nfs/scratch/akhan488/cogms-cfmm2bids/bids"
+final_bids_dir: "/nfs/scratch/aakbar9/cfmm2bids/bids"
 
 # 1. query
 search_specs:
@@ -92,18 +92,39 @@ base_heuristics:
 
 # 5. fix 
 post_convert_fixes:
-  - name: remove_fieldmaps
-    pattern: "fmap/*dir-AP*"
+  - name: remove_rois
+    pattern: "anat/*ROI1.*"
     action: remove
-  - name: add_phase_encoding
-    pattern: "func/*bold.json"
+  - name: add_num_shots_sa2rage
+    pattern: "fmap/*TB1SRGE.json"
     action: update_json
     updates:
-      NewPhaseEncodingDirection: "j-"
+      NumberShots: "placeholder"
+  - name: add_num_shots_mp2rage
+    pattern: "anat/*inv-*MP2RAGE.json"
+    action: update_json
+    updates:
+      NumberShots: "placeholder"
+  - name: phase_units
+    pattern: "*/*part-phase*.json"
+    action: update_json
+    updates:
+      Units: rad
+  - name: phase_units_
+    pattern: "*/*phase.json"
+    action: update_json
+    updates:
+      Units: rad
+
+
+
+
+
 
 bidsignore:
-  - '*b1DivImg.*'
-  - '*TB1Map.*'
+  - '*_acq-b1Div_*'
+  - '*_TB1Map.*'
+  - '*echo*T1map.*'
 
 
 # intermediate output folders
@@ -111,5 +132,5 @@ stages:
   query: "results/0_query"
   filter: "results/1_filter"
   download: "/nfs/scratch/akhan488/cogms-cfmm2bids/results/2_download"
-  convert: "/nfs/scratch/akhan488/cogms-cfmm2bids/results/3_convert"
-  fix: "/nfs/scratch/akhan488/cogms-cfmm2bids/results/4_fix"
+  convert: "/nfs/scratch/aakbar9/cfmm2bids/results/3_convert"
+  fix: "/nfs/scratch/aakbar9/cfmm2bids/results/4_fix"
