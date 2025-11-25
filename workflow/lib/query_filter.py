@@ -25,7 +25,9 @@ def compute_query_hash(search_specs, query_kwargs=None):
     str
         A hex digest hash of the query parameters.
     """
-    params = {"search_specs": search_specs, "query_kwargs": query_kwargs or {}}
+    if query_kwargs is None:
+        query_kwargs = {}
+    params = {"search_specs": search_specs, "query_kwargs": query_kwargs}
     # Use sort_keys=True for deterministic ordering
     params_json = json.dumps(params, sort_keys=True)
     return hashlib.sha256(params_json.encode()).hexdigest()

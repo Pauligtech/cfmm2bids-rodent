@@ -44,9 +44,14 @@ skip_query = should_skip_query(
 )
 
 if skip_query:
-    # Load existing query results
-    df = pd.read_csv(query_tsv_path, sep="\t")
-else:
+    # Try to load existing query results; fall back to re-querying on error
+    try:
+        df = pd.read_csv(query_tsv_path, sep="\t")
+    except (pd.errors.ParserError, pd.errors.EmptyDataError, OSError):
+        # Fall back to re-querying if cached file is corrupted or unreadable
+        skip_query = False
+
+if not skip_query:
     # Perform new query
     df = query_dicoms(
         config["search_specs"],
