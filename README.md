@@ -28,6 +28,8 @@ Queries DICOM studies from CFMM using search specifications defined in `config/c
 - Pattern matching with regex extraction
 - Automatic sanitization of subject/session IDs
 - Validation of subject/session ID format (alphanumeric only)
+- **Query caching**: Queries are cached based on a hash of the query parameters. If the `studies.tsv` file already exists and query parameters haven't changed, the query is skipped. This is especially useful when using remote executors like SLURM, where multiple jobs querying simultaneously can cause issues.
+- Use `--config force_requery=true` to force a fresh query when new scans may have been acquired
 
 Output: `studies.tsv` - Complete list of matched studies
 

@@ -1,5 +1,14 @@
 from pathlib import Path
-from lib.query_filter import validate_column, query_dicoms, post_filter
+
+import pandas as pd
+
+from lib.query_filter import (
+    compute_query_hash,
+    post_filter,
+    query_dicoms,
+    should_skip_query,
+    validate_column,
+)
 
 
 configfile: "config/config.yml"
@@ -19,15 +28,36 @@ final_bids_dir = Path(config.get("final_bids_dir", "bids"))
 # ----------
 # 0 - query
 # ----------
-df = query_dicoms(
-    config["search_specs"],
-    credentials_file=config["credentials_file"],
-    **config.get("query_kwargs", dict()),
+# Paths for query output and hash file
+query_tsv_path = stage_query / "studies.tsv"
+query_hash_path = stage_query / "query_hash.txt"
+
+# Compute current hash of query parameters
+current_query_hash = compute_query_hash(
+    config["search_specs"], config.get("query_kwargs", {})
 )
 
-# save unfiltered list
-stage_query.mkdir(parents=True, exist_ok=True)
-df.to_csv(stage_query / "studies.tsv", sep="\t", index=False)
+# Check if we can skip the query
+force_requery = config.get("force_requery", False)
+skip_query = should_skip_query(
+    query_tsv_path, query_hash_path, current_query_hash, force_requery
+)
+
+if skip_query:
+    # Load existing query results
+    df = pd.read_csv(query_tsv_path, sep="\t")
+else:
+    # Perform new query
+    df = query_dicoms(
+        config["search_specs"],
+        credentials_file=config["credentials_file"],
+        **config.get("query_kwargs", dict()),
+    )
+
+    # save unfiltered list and hash
+    stage_query.mkdir(parents=True, exist_ok=True)
+    df.to_csv(query_tsv_path, sep="\t", index=False)
+    query_hash_path.write_text(current_query_hash)
 
 # Validate both columns
 valid_subject = validate_column(df, "subject")
