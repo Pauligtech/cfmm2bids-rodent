@@ -379,7 +379,6 @@ def infotodict(seqinfo):
         "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_run-{item:01d}_inv-2_MP2RAGE"
     )
 
-
     # distortion-corrected versions:
     me_t1map_dis2d = create_key(
         "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MP2RAGE_rec-DIS2D_run-{item:01d}_T1map"
@@ -403,7 +402,6 @@ def infotodict(seqinfo):
         "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_rec-DIS2D_run-{item:01d}_inv-2_MP2RAGE"
     )
 
-
     # distortion-corrected versions:
     me_t1map_dis3d = create_key(
         "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-MP2RAGE_rec-DIS3D_run-{item:01d}_T1map"
@@ -426,8 +424,6 @@ def infotodict(seqinfo):
     me_t1inv2_dis3d = create_key(
         "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_rec-DIS3D_run-{item:01d}_inv-2_MP2RAGE"
     )
-
-
 
     # DIR T2 #
     dir_t2 = create_key(
