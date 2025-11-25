@@ -1,9 +1,8 @@
 from pathlib import Path
 from lib.query_filter import validate_column, query_dicoms, post_filter
 
+
 configfile: "config/config.yml"
-
-
 
 
 # Load stages dict
