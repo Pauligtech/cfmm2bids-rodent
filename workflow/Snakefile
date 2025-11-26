@@ -246,7 +246,7 @@ def get_cmd_cp_subj_dirs(wildcards, input, output):
         # 2) Create symlinks for all files
         cmds.append(
             f"find {subj_path} -type f -printf '%P\n' | "
-            f'while read f; do ln -sf {subj_path}/"$f" {out_path}/"$f"; done'
+            f'while read f; do ln -srf {subj_path}/"$f" {out_path}/"$f"; done'
         )
 
     return " && ".join(cmds)
@@ -285,8 +285,8 @@ rule assemble_convert_bids:
         "logs/assemble_convert_bids/assemble.log",
     shell:
         "mkdir -p {output.bids_dir} &> {log} && "
-        "ln -s {input.dataset_description} {output.bids_dir} &>> {log} && "
-        "ln -s {input.ignore} {output.bids_dir} &>> {log} && "
+        "ln -sr {input.dataset_description} {output.bids_dir} &>> {log} && "
+        "ln -sr {input.ignore} {output.bids_dir} &>> {log} && "
         "{params.cmd_cp_subj_dirs}"
 
 
