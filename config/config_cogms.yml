@@ -123,6 +123,7 @@ post_convert_fixes:
 
 bidsignore:
   - '*_acq-b1Div_*'
+  - '*_b1DivImg.*'
   - '*_TB1Map.*'
   - '*echo*T1map.*'
 
