@@ -48,10 +48,12 @@ def parse_auto_txt(auto_txt_path):
             if isinstance(series_id, dict):
                 series_id = series_id["item"]
             if series_id in series_to_bids:
-                raise ValueError(
-                    f"Duplicate series ID found: {series_id!r} (already mapped to {series_to_bids[series_id]!r})"
+                print(
+                    f"Duplicate series ID found: {series_id!r} (already mapped to {series_to_bids[series_id]!r}), prepending key with item {_item}"
                 )
-            series_to_bids[series_id] = bids_str
+                series_to_bids[f"{_item}_" + series_id] = bids_str
+            else:
+                series_to_bids[series_id] = bids_str
 
     # Sort keys alphanumerically
     series_to_bids_sorted = dict(sorted(series_to_bids.items(), key=lambda x: x[0]))

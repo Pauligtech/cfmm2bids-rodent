@@ -33,7 +33,7 @@ def main():
     """Main entry point for the script."""
     try:
         # Create bids-temp directory for processing
-        temp_dir = Path("bids-temp")
+        temp_dir = Path(snakemake.resources.tmpdir) / "bids-temp"
         temp_dir.mkdir(parents=True, exist_ok=True)
         logger.info(f"Using temp directory: {temp_dir.absolute()}")
 

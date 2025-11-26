@@ -237,4 +237,7 @@ def post_filter(df, post_filter_specs):
             zero_pad=remap_config.get("zero_pad", False),
         )
 
+    for q in post_filter_specs.get("exclude_post_remap") or []:
+        df = df.query(f"not ({q})")
+
     return df
