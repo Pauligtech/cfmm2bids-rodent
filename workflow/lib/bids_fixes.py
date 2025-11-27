@@ -8,12 +8,15 @@ They are auto-registered via the @register_fix decorator.
 
 import hashlib
 import json
+import logging
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
 import nibabel as nib
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 # --- global registry ---
 FIX_REGISTRY: dict[str, dict[str, Any]] = {}
@@ -36,6 +39,7 @@ def register_fix(name: str | None = None, grouped: bool = False):
         fix_name = name or func.__name__
         meta = {"func": func, "grouped": bool(grouped)}
         FIX_REGISTRY[fix_name] = meta
+        return func
 
     return decorator
 
@@ -179,7 +183,7 @@ def remove_duplicate_niftis(paths: list[Path], spec: dict) -> int:
     """Remove duplicate NIfTI files keeping the first one (alphanum sorted)."""
 
     # Sort files alphanumerically
-    nifti_files = sorted(paths, key=lambda p: str(p))
+    nifti_files = sorted(paths, key=str)
 
     # Group files by their content hash
     hash_to_files = {}
@@ -191,7 +195,7 @@ def remove_duplicate_niftis(paths: list[Path], spec: dict) -> int:
             hash_to_files[file_hash].append(nifti_file)
         except (OSError, ValueError, nib.spatialimages.ImageFileError) as e:
             # If we can't read a file, skip it
-            print(f"Warning: Could not compute hash for {nifti_file}: {e}")
+            logger.warning(f"Could not compute hash for {nifti_file}: {e}")
             continue
 
     # Remove duplicates (keep first, remove rest)
@@ -210,7 +214,7 @@ def remove_duplicate_niftis(paths: list[Path], spec: dict) -> int:
                     ".nii.gz"
                 ):
                     # For .nii.gz, replace with .json
-                    json_file = Path(str(duplicate_file)[:-7] + ".json")
+                    json_file = duplicate_file.with_suffix("").with_suffix(".json")
                 elif duplicate_file.suffix == ".nii":
                     # For .nii, replace with .json
                     json_file = duplicate_file.with_suffix(".json")

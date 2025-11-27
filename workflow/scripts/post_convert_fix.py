@@ -1,6 +1,7 @@
 import json
 import shutil
 import stat
+import traceback
 from pathlib import Path
 
 from lib import bids_fixes, utils
