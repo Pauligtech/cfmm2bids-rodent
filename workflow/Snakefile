@@ -80,11 +80,11 @@ df = post_filter(df, config["study_filter_specs"]).sort_values(
 
 # use --config subject= to process particular subject
 if config.get("subject", False):
-    df = df[df.subject == config["subject"]]
+    df = df[df.subject == str(config["subject"])]
 
 # use --config subject= to process particular subject
 if config.get("session", False):
-    df = df[df.session == config["session"]]
+    df = df[df.session == str(config["session"])]
 
 # use --config head=1  to only process first subject
 head_n = config.get("head", 0)
