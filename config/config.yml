@@ -23,6 +23,14 @@ credentials_file: ~/.uwo_credentials.bd
 # Default: "bids"
 final_bids_dir: "bids"
 
+# Force re-query of DICOM server (OPTIONAL, default: false)
+# By default, if the query results (studies.tsv) already exist and the
+# query parameters haven't changed, the workflow will skip re-querying.
+# Set to true to always query the DICOM server (e.g., when new scans
+# may have been acquired since the last query).
+# Can also be set via CLI: snakemake --config force_requery=true
+force_requery: false
+
 
 # ============================================================================
 # 1. QUERY STAGE - Search for DICOM studies
@@ -340,23 +348,31 @@ stages:
 #    - Specific stage: pixi run snakemake [download|convert|fix] --cores all
 #    - On SLURM cluster: pixi run snakemake --executor slurm --jobs 10 #runs 10 jobs at a time
 #
-# 3. SUBJECT/SESSION ID VALIDATION:
+# 3. QUERY CACHING:
+#    - By default, queries are cached based on a hash of the query parameters
+#    - If the studies.tsv file exists and query params haven't changed, the
+#      query is skipped (useful when running with remote executors like SLURM)
+#    - Use --config force_requery=true to force a fresh query when new scans
+#      may have been acquired since the last query
+#    - The hash is stored in results/0_query/query_hash.txt
+#
+# 4. SUBJECT/SESSION ID VALIDATION:
 #    - Subject and session IDs must contain only alphanumeric characters
 #    - Use 'sanitize: true' to automatically remove invalid characters
 #    - Invalid characters: spaces, hyphens, underscores, special characters
 #
-# 4. PATTERN MATCHING:
+# 5. PATTERN MATCHING:
 #    - Patterns for the fix and query stage use glob syntax: * matches any characters
 #    - Patterns are relative to subject/session directory in BIDS dataset
 #    - Examples: "anat/*T1w.nii.gz", "func/*task-rest*", "fmap/*"
 #    - Regular expressions are used for matching subject and session patterns
 #
-# 5. QC REPORTS:
+# 6. QC REPORTS:
 #    - Generated automatically during convert stage
 #    - Located in: results/3_convert/qc/sub-{subject}/ses-{session}/
 #    - Includes series list and unmapped series summary
 #
-# 6. BIDS VALIDATION:
+# 7. BIDS VALIDATION:
 #    - Runs automatically after convert and fix stages
 #    - Invalid datasets after the fix stage will result in an error
 #    - Validator output can be found in the logs/ folder

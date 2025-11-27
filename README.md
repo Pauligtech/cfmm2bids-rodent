@@ -28,6 +28,8 @@ Queries DICOM studies from CFMM using search specifications defined in `config/c
 - Pattern matching with regex extraction
 - Automatic sanitization of subject/session IDs
 - Validation of subject/session ID format (alphanumeric only)
+- **Query caching**: Queries are cached based on a hash of the query parameters. If the `studies.tsv` file already exists and query parameters haven't changed, the query is skipped. This is especially useful when using remote executors like SLURM, where multiple jobs querying simultaneously can cause issues.
+- Use `--config force_requery=true` to force a fresh query when new scans may have been acquired
 
 Output: `studies.tsv` - Complete list of matched studies
 
@@ -164,6 +166,26 @@ When `merge_duplicate_studies: true` is enabled and multiple studies match the s
 - `heuristic`: Path to heudiconv heuristic file
 - `dcmconfig_json`: Path to dcm2niix configuration
 - `heudiconv_options`: Additional heudiconv options
+
+#### Available Heuristics
+
+The workflow includes several heuristic files for different scanner configurations:
+
+- **`heuristics/cfmm_base.py`**: Base CFMM heuristic supporting standard sequences including:
+  - MP2RAGE, MEMP2RAGE, Sa2RAGE
+  - T2 TSE (Turbo Spin Echo)
+  - T2 SPACE, T2 FLAIR
+  - Multi-echo GRE
+  - TOF Angiography
+  - Diffusion-weighted imaging
+  - BOLD fMRI (multiband, psf-dico)
+  - Field mapping (EPI-PA, GRE)
+  - **DIS2D/DIS3D distortion-corrected reconstructions** - Improved detection that robustly identifies distortion-corrected images regardless of their position in the DICOM image_type metadata
+  
+- **`heuristics/trident_15T.py`**: Trident 15T scanner-specific heuristic
+- **`heuristics/Menon_CogMSv2.py`**: CogMS study-specific heuristic
+
+The heuristics automatically detect and label distortion-corrected (DIS2D/DIS3D) reconstructions using the `rec-DIS2D` or `rec-DIS3D` BIDS suffix.
 
 ### Fix Configuration (`post_convert_fixes`)
 Define fixes to apply after conversion:
@@ -324,6 +346,10 @@ results/
 │       ├── generate_subject_report.py        # Individual subject/session reports
 │       ├── generate_aggregate_all_report.py  # Aggregate QC report
 │       └── post_convert_fix.py               # Post-conversion fix application
+├── heuristics/                 # Heudiconv heuristic files
+│   ├── cfmm_base.py           # Base CFMM heuristic (supports DIS2D/DIS3D reconstruction)
+│   ├── trident_15T.py         # Trident 15T scanner-specific heuristic
+│   └── Menon_CogMSv2.py       # CogMS study-specific heuristic
 ├── resources/                  # Resource files
 │   ├── dcm2niix_config.json   # dcm2niix configuration
 │   └── dataset_description.json  # BIDS dataset metadata template

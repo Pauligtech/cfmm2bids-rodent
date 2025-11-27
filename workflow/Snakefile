@@ -1,5 +1,14 @@
 from pathlib import Path
-from lib.query_filter import validate_column, query_dicoms, post_filter
+
+import pandas as pd
+
+from lib.query_filter import (
+    compute_query_hash,
+    post_filter,
+    query_dicoms,
+    should_skip_query,
+    validate_column,
+)
 
 
 configfile: "config/config.yml"
@@ -19,15 +28,43 @@ final_bids_dir = Path(config.get("final_bids_dir", "bids"))
 # ----------
 # 0 - query
 # ----------
-df = query_dicoms(
-    config["search_specs"],
-    credentials_file=config["credentials_file"],
-    **config.get("query_kwargs", dict()),
+# Paths for query output and hash file
+query_tsv_path = stage_query / "studies.tsv"
+query_hash_path = stage_query / "query_hash.txt"
+
+# Compute current hash of query parameters
+current_query_hash = compute_query_hash(
+    config["search_specs"], config.get("query_kwargs", {})
 )
 
-# save unfiltered list
-stage_query.mkdir(parents=True, exist_ok=True)
-df.to_csv(stage_query / "studies.tsv", sep="\t", index=False)
+# Check if we can skip the query
+force_requery = config.get("force_requery", False)
+skip_query = should_skip_query(
+    query_tsv_path, query_hash_path, current_query_hash, force_requery
+)
+
+if skip_query:
+    # Try to load existing query results; fall back to re-querying on error
+    try:
+        df = pd.read_csv(
+            query_tsv_path, sep="\t", dtype={"subject": str, "session": str}
+        )
+    except (pd.errors.ParserError, pd.errors.EmptyDataError, OSError):
+        # Fall back to re-querying if cached file is corrupted or unreadable
+        skip_query = False
+
+if not skip_query:
+    # Perform new query
+    df = query_dicoms(
+        config["search_specs"],
+        credentials_file=config["credentials_file"],
+        **config.get("query_kwargs", dict()),
+    )
+
+    # save unfiltered list and hash
+    stage_query.mkdir(parents=True, exist_ok=True)
+    df.to_csv(query_tsv_path, sep="\t", index=False)
+    query_hash_path.write_text(current_query_hash)
 
 # Validate both columns
 valid_subject = validate_column(df, "subject")
@@ -172,9 +209,7 @@ rule heudiconv:
     threads: 16
     resources:
         mem_mb=16000,
-        runtime=30,
-    group:
-        "convert"
+        runtime=60,
     script:
         "scripts/run_heudiconv.py"
 
@@ -223,9 +258,7 @@ rule generate_convert_qc_figs:
     threads: 1
     resources:
         mem_mb=4000,
-        runtime=10,
-    group:
-        "convert"
+        runtime=30,
     script:
         "scripts/generate_convert_qc_figs.py"
 
@@ -234,12 +267,24 @@ def get_cmd_cp_subj_dirs(wildcards, input, output):
 
     cmds = []
     for subj_dir in input.bids_subj_dirs:
-        # get path to create at output
         subj_path = Path(subj_dir)
         rel_path = subj_path.relative_to(subj_path.parents[1])
         out_path = Path(output.bids_dir) / rel_path
+
+        # Create the corresponding base dir for this subject
         cmds.append(f"mkdir -p {out_path}")
-        cmds.append(f"cp -R {subj_path}/* {out_path}/")
+
+        # 1) Create all directories from subj_path inside out_path
+        cmds.append(
+            f"find {subj_path} -type d -printf '%P\n' | "
+            f'while read d; do mkdir -p {out_path}/"$d"; done'
+        )
+
+        # 2) Create symlinks for all files
+        cmds.append(
+            f"find {subj_path} -type f -printf '%P\n' | "
+            f'while read f; do ln -srf {subj_path}/"$f" {out_path}/"$f"; done'
+        )
 
     return " && ".join(cmds)
 
@@ -277,8 +322,8 @@ rule assemble_convert_bids:
         "logs/assemble_convert_bids/assemble.log",
     shell:
         "mkdir -p {output.bids_dir} &> {log} && "
-        "cp {input.dataset_description} {output.bids_dir} &>> {log} && "
-        "cp {input.ignore} {output.bids_dir} &>> {log} && "
+        "ln -sr {input.dataset_description} {output.bids_dir} &>> {log} && "
+        "ln -sr {input.ignore} {output.bids_dir} &>> {log} && "
         "{params.cmd_cp_subj_dirs}"
 
 
@@ -290,7 +335,7 @@ rule validate_converted:
     threads: 1
     resources:
         mem_mb=4000,
-        runtime=10,
+        runtime=60,
     log:
         "logs/convert/validator.txt",
     shell:
@@ -399,7 +444,7 @@ rule validate_fixed:
     threads: 1
     resources:
         mem_mb=4000,
-        runtime=10,
+        runtime=60,
     log:
         "logs/fix/validator.txt",
     shell:
@@ -422,7 +467,7 @@ rule subject_report_convert:
     threads: 1
     resources:
         mem_mb=4000,
-        runtime=10,
+        runtime=30,
     script:
         "scripts/generate_subject_report.py"
 
@@ -442,7 +487,7 @@ rule subject_report_fix:
     threads: 1
     resources:
         mem_mb=4000,
-        runtime=10,
+        runtime=30,
     script:
         "scripts/generate_subject_report.py"
 

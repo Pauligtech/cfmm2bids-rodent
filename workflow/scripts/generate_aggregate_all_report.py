@@ -470,10 +470,15 @@ def format_validator_summary(validator_data):
             )
 
         if "size" in summary:
+            print(summary)
+            print(summary.get("size"))
             size_bytes = summary.get("size", 0)
+            if size_bytes is None:
+                size_bytes = 0
+            print(size_bytes)
             # Convert to human readable format
             for unit in ["B", "KB", "MB", "GB", "TB"]:
-                if size_bytes < 1024.0:
+                if int(size_bytes) < 1024:
                     size_str = f"{size_bytes:.1f} {unit}"
                     break
                 size_bytes /= 1024.0

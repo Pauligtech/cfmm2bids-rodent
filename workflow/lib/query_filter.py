@@ -1,6 +1,79 @@
+import hashlib
+import json
+
 import numpy as np
 import pandas as pd
 from cfmm2tar import query_metadata
+
+
+def compute_query_hash(search_specs, query_kwargs=None):
+    """
+    Compute a deterministic hash of the query parameters.
+
+    This hash is used to detect if query parameters have changed since
+    the last query, allowing us to skip re-querying if nothing changed.
+
+    Parameters
+    ----------
+    search_specs : list
+        The search specifications from the config.
+    query_kwargs : dict, optional
+        Additional query keyword arguments.
+
+    Returns
+    -------
+    str
+        A hex digest hash of the query parameters.
+    """
+    if query_kwargs is None:
+        query_kwargs = {}
+    params = {"search_specs": search_specs, "query_kwargs": query_kwargs}
+    # Use sort_keys=True for deterministic ordering
+    params_json = json.dumps(params, sort_keys=True)
+    return hashlib.sha256(params_json.encode()).hexdigest()
+
+
+def should_skip_query(
+    query_tsv_path, query_hash_path, current_hash, force_requery=False
+):
+    """
+    Determine if the query can be skipped.
+
+    The query can be skipped if:
+    1. The query TSV file already exists
+    2. The hash file exists and matches the current hash
+    3. force_requery is not set
+
+    Parameters
+    ----------
+    query_tsv_path : Path
+        Path to the query results TSV file.
+    query_hash_path : Path
+        Path to the query hash file.
+    current_hash : str
+        The current computed hash of query parameters.
+    force_requery : bool, default=False
+        If True, always perform a new query.
+
+    Returns
+    -------
+    bool
+        True if the query can be skipped, False otherwise.
+    """
+    if force_requery:
+        return False
+
+    if not query_tsv_path.exists():
+        return False
+
+    if not query_hash_path.exists():
+        return False
+
+    try:
+        stored_hash = query_hash_path.read_text().strip()
+        return stored_hash == current_hash
+    except OSError:
+        return False
 
 
 # Function to validate a column
@@ -236,5 +309,8 @@ def post_filter(df, post_filter_specs):
             reference_format=remap_config.get("reference_format", "%Y%m%d"),
             zero_pad=remap_config.get("zero_pad", False),
         )
+
+    for q in post_filter_specs.get("exclude_post_remap") or []:
+        df = df.query(f"not ({q})")
 
     return df
