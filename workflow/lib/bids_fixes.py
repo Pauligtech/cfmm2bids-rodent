@@ -175,11 +175,11 @@ def _compute_nifti_hash(path: Path) -> str:
 
 
 @register_fix("remove_duplicate_niftis", grouped=True)
-def remove_duplicate_niftis(path: Path, spec: dict) -> bool:
+def remove_duplicate_niftis(paths: list[Path], spec: dict) -> int:
     """Remove duplicate NIfTI files keeping the first one (alphanum sorted)."""
 
     # Sort files alphanumerically
-    nifti_files = sorted(path, key=lambda p: str(p))
+    nifti_files = sorted(paths, key=lambda p: str(p))
 
     # Group files by their content hash
     hash_to_files = {}
