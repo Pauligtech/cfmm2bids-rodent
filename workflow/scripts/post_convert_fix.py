@@ -42,10 +42,14 @@ for fix in fixes:
     name = fix.get("name", "unnamed_fix")
     pattern = fix["pattern"]
     action = fix["action"]
-    handler = bids_fixes.FIX_REGISTRY.get(action)
 
-    if handler is None:
+    meta = bids_fixes.FIX_REGISTRY.get(action)
+
+    if meta is None:
         raise ValueError(f"Unknown fix type: {action}")
+
+    func = meta.get("func")
+    grouped = bool(meta.get("grouped", False))
 
     logger.info(f"\n=== Applying fix: {name} ({action}) ===")
     matches = list(dst.rglob(pattern))
@@ -53,9 +57,28 @@ for fix in fixes:
         logger.info(f"  ⚠️ No matches for pattern: {pattern}")
         continue
 
-    for path in matches:
-        if handler(path, fix):
-            num_changes += 1
+    try:
+        if grouped:
+            # pass the whole list of Path objects and the fix dict
+            added = func(matches, fix)
+            num_changes += added
+            logger.info(f"  grouped handler returned: {added}")
+        else:
+            # per-file handler: call once per match
+            for path in matches:
+                try:
+                    changed = func(path, fix)
+                except Exception:
+                    logger.error(f"  Exception running handler for {path}:")
+                    logger.error(traceback.format_exc())
+                    changed = False
+                if changed:
+                    num_changes += 1
+    except Exception:
+        logger.error(f"  Exception running fix '{name}' ({action}):")
+        logger.error(traceback.format_exc())
+        # continue to next fix
+
 
 logger.info(f"✅ Done with {src.name}: {num_changes} files modified.")
 

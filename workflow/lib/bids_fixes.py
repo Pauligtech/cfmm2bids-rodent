@@ -8,22 +8,34 @@ They are auto-registered via the @register_fix decorator.
 
 import hashlib
 import json
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import nibabel as nib
 import numpy as np
 
 # --- global registry ---
-FIX_REGISTRY = {}
+FIX_REGISTRY: dict[str, dict[str, Any]] = {}
 
 
-def register_fix(name=None):
-    """Decorator to register a fix function automatically."""
+def register_fix(name: str | None = None, grouped: bool = False):
+    """Decorator to register a fix function.
 
-    def decorator(func):
+    Stored metadata (FIX_REGISTRY[name]):
+      {
+        "func": <callable>,
+        "grouped": bool
+      }
+
+    grouped=True -> runner should call func(list_of_paths, ctx)
+    grouped=False -> runner should call func(path, ctx) for each match
+    """
+
+    def decorator(func: Callable):
         fix_name = name or func.__name__
-        FIX_REGISTRY[fix_name] = func
-        return func
+        meta = {"func": func, "grouped": bool(grouped)}
+        FIX_REGISTRY[fix_name] = meta
 
     return decorator
 
@@ -162,55 +174,13 @@ def _compute_nifti_hash(path: Path) -> str:
     return hashlib.md5(data.tobytes()).hexdigest()
 
 
-@register_fix("remove_duplicate_niftis")
+@register_fix("remove_duplicate_niftis", grouped=True)
 def remove_duplicate_niftis(path: Path, spec: dict) -> bool:
-    """Remove duplicate NIfTI files keeping the first one (alphanum sorted).
+    """Remove duplicate NIfTI files keeping the first one (alphanum sorted)."""
 
-    This fix should be called with a directory path (e.g., pattern: "*" or ".").
-    It will find all .nii/.nii.gz files in the directory tree, identify
-    duplicates based on image data content, and remove all but the first
-    occurrence (alphanumerically sorted). Corresponding .json sidecars are
-    also removed.
-
-    Note: This fix uses a function attribute to ensure it only runs once even
-    if called multiple times (e.g., when pattern matches multiple files).
-    """
-    # Use a function-level flag to ensure we only run once
-    if not hasattr(remove_duplicate_niftis, "_already_run"):
-        remove_duplicate_niftis._already_run = set()
-
-    # Get the root directory (subject/session directory)
-    if path.is_dir():
-        root_dir = path
-    else:
-        # If called on a file, get the root subject/session directory
-        # by going up to find the directory containing this file
-        root_dir = path.parent
-        # Go up until we find a directory that looks like a BIDS subject/session dir
-        while root_dir.parent != root_dir and not (
-            any(p.startswith("sub-") for p in root_dir.parts)
-        ):
-            root_dir = root_dir.parent
-
-    # Convert to string for hashable key
-    root_dir_str = str(root_dir)
-
-    # Skip if we've already processed this directory
-    if root_dir_str in remove_duplicate_niftis._already_run:
-        return False
-
-    remove_duplicate_niftis._already_run.add(root_dir_str)
-
-    # Find all NIfTI files in the directory tree
-    nifti_files = []
-    for pattern in ["**/*.nii", "**/*.nii.gz"]:
-        nifti_files.extend(root_dir.glob(pattern))
-
-    if not nifti_files:
-        return False
 
     # Sort files alphanumerically
-    nifti_files = sorted(nifti_files, key=lambda p: str(p))
+    nifti_files = sorted(path, key=lambda p: str(p))
 
     # Group files by their content hash
     hash_to_files = {}
@@ -253,7 +223,7 @@ def remove_duplicate_niftis(path: Path, spec: dict) -> bool:
                     json_file.unlink()
                     files_removed += 1
 
-    return files_removed > 0
+    return files_removed
 
 
 def describe_available_fixes():
