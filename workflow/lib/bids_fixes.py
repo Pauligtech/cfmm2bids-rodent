@@ -178,7 +178,6 @@ def _compute_nifti_hash(path: Path) -> str:
 def remove_duplicate_niftis(path: Path, spec: dict) -> bool:
     """Remove duplicate NIfTI files keeping the first one (alphanum sorted)."""
 
-
     # Sort files alphanumerically
     nifti_files = sorted(path, key=lambda p: str(p))
 
