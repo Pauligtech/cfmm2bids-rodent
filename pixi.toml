@@ -22,8 +22,16 @@ snakemake-executor-plugin-slurm = ">=1.4.0,<2"
 cfmm2tar = { git = "https://github.com/khanlab/cfmm2tar", rev = "master" }
 heudiconv = { git = "https://github.com/khanlab/heudiconv", rev = "master"}
 bids-validator-deno = ">=2.2.0,<3"
-ruff = ">=0.8.0,<0.9"
-snakefmt = ">=0.10.0,<0.11"
 pre-commit = ">=4.0.0,<5"
-pytest = ">=8.0.0,<9"
+
+[feature.dev.dependencies]
+ruff = ">=0.14.6,<0.15"
+pytest = ">=9.0.1,<10"
+snakefmt = ">=0.11.2,<0.12"
+
+[feature.dev.tasks]
+test = "pytest"
+
+[environments]
+dev = ["dev"]
 
