@@ -6,22 +6,39 @@ Each fix function operates on a Path and a fix specification dict.
 They are auto-registered via the @register_fix decorator.
 """
 
+import hashlib
 import json
+import logging
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import nibabel as nib
 import numpy as np
 
+logger = logging.getLogger(__name__)
+
 # --- global registry ---
-FIX_REGISTRY = {}
+FIX_REGISTRY: dict[str, dict[str, Any]] = {}
 
 
-def register_fix(name=None):
-    """Decorator to register a fix function automatically."""
+def register_fix(name: str | None = None, grouped: bool = False):
+    """Decorator to register a fix function.
 
-    def decorator(func):
+    Stored metadata (FIX_REGISTRY[name]):
+      {
+        "func": <callable>,
+        "grouped": bool
+      }
+
+    grouped=True -> runner should call func(list_of_paths, ctx)
+    grouped=False -> runner should call func(path, ctx) for each match
+    """
+
+    def decorator(func: Callable):
         fix_name = name or func.__name__
-        FIX_REGISTRY[fix_name] = func
+        meta = {"func": func, "grouped": bool(grouped)}
+        FIX_REGISTRY[fix_name] = meta
         return func
 
     return decorator
@@ -146,10 +163,77 @@ def fix_orientation_quadruped(path: Path, spec: dict) -> bool:
     return True
 
 
+def _compute_nifti_hash(path: Path) -> str:
+    """Compute hash of NIfTI file data for duplicate detection.
+
+    Loads the NIfTI data and computes MD5 hash of the array data.
+    This is more reliable than file-level hashing as it ignores
+    minor header differences.
+
+    Note: For very large files, this may be memory-intensive as it
+    loads the entire image into memory.
+    """
+    img = nib.load(path)
+    data = np.asanyarray(img.dataobj)
+    return hashlib.md5(data.tobytes()).hexdigest()
+
+
+@register_fix("remove_duplicate_niftis", grouped=True)
+def remove_duplicate_niftis(paths: list[Path], spec: dict) -> int:
+    """Remove duplicate NIfTI files keeping the first one (alphanum sorted)."""
+
+    # Sort files alphanumerically
+    nifti_files = sorted(paths, key=str)
+
+    # Group files by their content hash
+    hash_to_files = {}
+    for nifti_file in nifti_files:
+        try:
+            file_hash = _compute_nifti_hash(nifti_file)
+            if file_hash not in hash_to_files:
+                hash_to_files[file_hash] = []
+            hash_to_files[file_hash].append(nifti_file)
+        except (OSError, ValueError, nib.spatialimages.ImageFileError) as e:
+            # If we can't read a file, skip it
+            logger.warning(f"Could not compute hash for {nifti_file}: {e}")
+            continue
+
+    # Remove duplicates (keep first, remove rest)
+    files_removed = 0
+    for _file_hash, files in hash_to_files.items():
+        if len(files) > 1:
+            # Keep the first file (already sorted), remove the rest
+            for duplicate_file in files[1:]:
+                # Remove the NIfTI file
+                duplicate_file.unlink()
+                files_removed += 1
+
+                # Remove corresponding JSON sidecar if it exists
+                # Handle both .nii and .nii.gz extensions
+                if duplicate_file.suffix == ".gz" and str(duplicate_file).endswith(
+                    ".nii.gz"
+                ):
+                    # For .nii.gz, replace with .json
+                    json_file = duplicate_file.with_suffix("").with_suffix(".json")
+                elif duplicate_file.suffix == ".nii":
+                    # For .nii, replace with .json
+                    json_file = duplicate_file.with_suffix(".json")
+                else:
+                    # Unknown extension, skip
+                    continue
+
+                if json_file.exists():
+                    json_file.unlink()
+                    files_removed += 1
+
+    return files_removed
+
+
 def describe_available_fixes():
     """Return a markdown list of all registered fixes and their docstrings."""
     lines = ["### Available Fixes:"]
-    for name, func in FIX_REGISTRY.items():
+    for name, meta in FIX_REGISTRY.items():
+        func = meta["func"]
         doc = (func.__doc__ or "").strip().split("\n")[0]
         lines.append(f"- **{name}** — {doc}")
     return "\n".join(lines)
