@@ -51,3 +51,7 @@ indent-style = "space"
 
 # Use Unix line endings
 line-ending = "lf"
+
+[tool.pytest.ini_options]
+testpaths = ["workflow/lib/tests"]
+pythonpath = ["."]

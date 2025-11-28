@@ -232,7 +232,8 @@ def remove_duplicate_niftis(paths: list[Path], spec: dict) -> int:
 def describe_available_fixes():
     """Return a markdown list of all registered fixes and their docstrings."""
     lines = ["### Available Fixes:"]
-    for name, func in FIX_REGISTRY.items():
+    for name, meta in FIX_REGISTRY.items():
+        func = meta["func"]
         doc = (func.__doc__ or "").strip().split("\n")[0]
         lines.append(f"- **{name}** — {doc}")
     return "\n".join(lines)
