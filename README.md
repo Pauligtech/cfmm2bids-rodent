@@ -267,12 +267,12 @@ post_convert_fixes:
    
    **Process only the first subject** (useful for testing):
    ```bash
-   pixi run snakemake head --cores all
+   pixi run snakemake --config head=1 --cores all
    ```
    
    **Process only first N subjects** (e.g., first 3):
    ```bash
-   pixi run snakemake --config head=3 --cores all
+   pixi run snakemake -C head=3 --cores all
    ```
 
 7. Run the workflow on a SLURM cluster:
@@ -377,7 +377,7 @@ The workflow provides several target rules for running specific stages:
 Example usage:
 ```bash
 # Test with first subject only
-pixi run snakemake head --cores all
+pixi run snakemake -C head=1 --cores all
 
 # Download all DICOMs without conversion
 pixi run snakemake download --cores all
