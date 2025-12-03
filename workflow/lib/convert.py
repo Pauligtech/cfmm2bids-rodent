@@ -66,7 +66,7 @@ def run_heudiconv_for_study(
     logger.info(f"Processing study {study_uid} from {tar_file.name}")
 
     # Create a temporary directory for this study
-    study_temp_dir = temp_dir / f"study_{study_uid}"
+    study_temp_dir = Path(temp_dir) / f"study_{study_uid}"
     study_temp_dir.mkdir(parents=True, exist_ok=True)
 
     # Run heudiconv on this study's DICOMs
