@@ -8,8 +8,9 @@ It is called via the script: directive from the heudiconv rule.
 
 # ruff: noqa: E402
 
-from lib.utils import setup_logger
 import tempfile
+
+from lib.utils import setup_logger
 
 log_file = snakemake.log[0] if snakemake.log else None
 logger = setup_logger(log_file)
@@ -33,7 +34,9 @@ def is_multi_study_case(dicoms_dir: Path) -> bool:
 def main():
     """Main entry point for the script."""
     try:
-        with tempfile.TemporaryDirectory(prefix='bids_', suffix='_temp', dir='/tmp') as tmpdirname:
+        with tempfile.TemporaryDirectory(
+            prefix="bids_", suffix="_temp", dir="/tmp"
+        ) as tmpdirname:
             # Create bids-temp directory for processing
             logger.info(f"Using temp directory: {tmpdirname}")
 
