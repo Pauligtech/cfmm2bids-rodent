@@ -3,7 +3,12 @@ import json
 
 import numpy as np
 import pandas as pd
-from cfmm2tar import query_metadata
+
+# Import cfmm2tar conditionally - only needed for actual queries
+try:
+    from cfmm2tar import query_metadata
+except ImportError:
+    query_metadata = None
 
 
 def compute_query_hash(search_specs, query_kwargs=None):
@@ -92,6 +97,12 @@ def validate_column(df, col):
 
 
 def query_dicoms(search_specs, **query_metadata_kwargs):
+    if query_metadata is None:
+        raise ImportError(
+            "cfmm2tar is required for querying DICOM metadata. "
+            "Install it with: pip install cfmm2tar"
+        )
+
     all_dfs = []
 
     for spec in search_specs:

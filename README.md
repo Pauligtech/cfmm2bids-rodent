@@ -386,3 +386,50 @@ pixi run snakemake download --cores all
 pixi run snakemake convert --cores all
 ```
 
+## Testing
+
+The repository includes unit and integration tests to ensure code quality and workflow correctness.
+
+### Running Tests
+
+```bash
+# Run all tests
+pytest workflow/lib/tests/ -v
+
+# Run unit tests only (test individual functions)
+pytest workflow/lib/tests/test_bids_fixes.py -v
+
+# Run integration tests (test workflow with Snakemake dry-run)
+pytest workflow/lib/tests/test_integration.py -v
+```
+
+### Test Structure
+
+- **Unit tests** (`test_bids_fixes.py`): Test individual functions in the bids_fixes module
+- **Integration tests** (`test_integration.py`): Test the complete Snakemake workflow using dry-run mode
+- **Test fixtures** (`workflow/lib/tests/fixtures/`): Sample data for testing
+  - `sample_studies.tsv`: Mock query results 
+  - `test_config.yml`: Test configuration file
+
+### Integration Testing Approach
+
+The integration tests use Snakemake's dry-run mode (`-np` flag) to validate that:
+- The workflow can parse successfully without errors
+- All stages (query, filter, download, convert, fix) can be planned
+- The workflow correctly handles pre-generated TSV query outputs
+
+This approach allows testing the workflow without requiring:
+- CFMM server access or credentials
+- Actual DICOM data
+- Full workflow execution (which would be time-consuming)
+
+The tests use pre-populated query results (TSV files) to simulate the query stage, allowing the workflow to proceed through planning all subsequent stages.
+
+### CI/CD
+
+Tests run automatically on every push and pull request via GitHub Actions:
+- Lint checks (ruff)
+- Code formatting checks (ruff, snakefmt)
+- Unit tests
+- Integration tests (dry-run)
+
