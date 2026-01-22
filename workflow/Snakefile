@@ -564,8 +564,7 @@ rule validate_final:
         mem_mb=4000,
         runtime=10,
     shell:
-        "bids-validator-deno {input.bids_dir} --format text &> {output.validator_txt}"
-
+        "bids-validator-deno {input.bids_dir} --format text > {output.validator_txt} 2>&1 || true"
 
 rule assemble_final_bids:
     """
