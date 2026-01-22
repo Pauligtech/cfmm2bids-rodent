@@ -1,5 +1,5 @@
 # Test configuration for dry-run integration testing
-credentials_file: /tmp/fake_credentials.bd
+credentials_file: .fake_credentials.bd
 final_bids_dir: "test_bids"
 
 # Query stage - will be bypassed with pre-generated TSV

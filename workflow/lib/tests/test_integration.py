@@ -73,15 +73,22 @@ def test_workdir(tmp_path):
     query_hash = hashlib.sha256(params_json.encode()).hexdigest()
     (query_dir / "query_hash.txt").write_text(query_hash)
 
-    # Create fake credentials file
-    creds_file = Path("/tmp/fake_credentials.bd")
+    # Create fake credentials file in the test directory
+    creds_file = workdir / ".fake_credentials.bd"
     creds_file.write_text("fake_username\nfake_password\n")
+
+    # Update config to use the test credentials file
+    import yaml
+
+    with open(config_dst) as f:
+        test_config = yaml.safe_load(f)
+    test_config["credentials_file"] = str(creds_file)
+    with open(config_dst, "w") as f:
+        yaml.dump(test_config, f)
 
     yield workdir
 
-    # Cleanup
-    if creds_file.exists():
-        creds_file.unlink()
+    # Cleanup happens automatically when tmp_path is cleaned up
 
 
 @pytest.mark.skipif(not SNAKEMAKE_AVAILABLE, reason="Snakemake not available")

@@ -413,7 +413,7 @@ pytest workflow/lib/tests/test_integration.py -v
 
 ### Integration Testing Approach
 
-The integration tests use Snakemake's dry-run mode (`-np` flag) to validate that:
+The integration tests use Snakemake's dry-run mode (`--dry-run` flag) to validate that:
 - The workflow can parse successfully without errors
 - All stages (query, filter, download, convert, fix) can be planned
 - The workflow correctly handles pre-generated TSV query outputs
