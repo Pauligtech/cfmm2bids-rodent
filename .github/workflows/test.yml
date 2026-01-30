@@ -15,20 +15,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up pixi
+        uses: prefix-dev/setup-pixi@v0.8.1
         with:
-          python-version: '3.11'
-      
-      - name: Install dependencies
-        run: |
-          pip install pytest pandas snakemake nibabel pyyaml
+          environments: dev
       
       - name: Run unit tests
-        run: pytest workflow/lib/tests/test_bids_fixes.py -v
+        run: pixi run -e dev pytest workflow/lib/tests/test_bids_fixes.py -v
       
       - name: Run data fixture tests
-        run: pytest workflow/lib/tests/test_integration.py::TestDataFixtures -v
+        run: pixi run -e dev pytest workflow/lib/tests/test_integration.py::TestDataFixtures -v
       
       - name: Run integration tests (dry-run)
-        run: pytest workflow/lib/tests/test_integration.py::TestSnakemakeDryRun -v
+        run: pixi run -e dev pytest workflow/lib/tests/test_integration.py::TestSnakemakeDryRun -v
