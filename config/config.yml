@@ -69,6 +69,13 @@ search_specs:
         # Common options: PatientID, PatientName, StudyDescription
         source: PatientID
 
+        # Constant value for all subjects (OPTIONAL)
+        # If specified, all subjects will use this constant value instead of extracting from DICOM
+        # Useful for single-subject studies or when all data belongs to the same subject
+        # Example: constant: 'pilot'
+        # Note: When using 'constant', the 'source' field can be omitted or will be ignored
+        # constant: 'pilot'
+
         # Pre-map extracted values to new values (OPTIONAL)
         # Example: map  to session numbers
         # map:
@@ -101,6 +108,13 @@ search_specs:
         # DICOM field to extract from
         # Common options: StudyDate, PatientID, StudyDescription
         source: StudyDate
+        
+        # Constant value for all sessions (OPTIONAL)
+        # If specified, all sessions will use this constant value instead of extracting from DICOM
+        # Useful when all data should have the same session label (e.g., all scans from same scanner)
+        # Example: constant: '15T' 
+        # Note: When using 'constant', the 'source' field can be omitted or will be ignored
+        # constant: '15T'
         
         # Regex pattern to extract session ID (OPTIONAL)
         # pattern: ''
