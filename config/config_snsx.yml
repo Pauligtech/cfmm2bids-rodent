@@ -21,7 +21,7 @@ credentials_file: ~/.uwo_credentials
 # Final output directory for the BIDS dataset (REQUIRED)
 # Absolute or relative paths can be used, will be relative to working folder
 # Default: "bids"
-final_bids_dir: "/localscratch/bids"
+final_bids_dir: "bids"
 
 # Force re-query of DICOM server (OPTIONAL, default: false)
 # By default, if the query results (studies.tsv) already exist and the
@@ -50,7 +50,7 @@ search_specs:
       #   20230101-           (all studies from Jan 1, 2023 onwards)
       #   20230101-20231231   (studies in 2023)
       #   20230515            (studies on May 15, 2023 only)
-      study_date: 20250101-
+      study_date: 20170101-
       
       # Patient name pattern (OPTIONAL)
       # Example: "Smith^John" or "AppKI2.hTau.*" (regex supported)
@@ -138,8 +138,8 @@ search_specs:
 # additional options to pass to cfmm query_metadata, e.g. to include additional
 # columns in the metadata based on specific dicom tags (like PatientBirthDate below)
 query_kwargs:
-  additional_tags:
-    "00100030": PatientBirthDate
+  #additional_tags:
+  #  "00100030": PatientBirthDate
  
 
 # ============================================================================
