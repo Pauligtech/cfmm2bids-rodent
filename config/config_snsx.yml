@@ -84,6 +84,7 @@ search_specs:
           '2018_01_23_snSx_p015': '2018_01_23_SNSX_P015'
           '2024_07_08_SNSX_C50': '2024_07_08_SNSX_C050'
 
+
         # Regex pattern to extract subject ID (OPTIONAL)
         # Use capture group () to extract the desired part
         # Examples:
@@ -96,8 +97,8 @@ search_specs:
         sanitize: true
         
         # Fill missing values with a default (OPTIONAL)
-        # fillna: '01'
-        
+        #fillna: '01'
+       
         # Map extracted values to new values (OPTIONAL)
         # Example: map visit names to session numbers
         # map:
@@ -112,6 +113,8 @@ search_specs:
         
         # Regex pattern to extract session ID (OPTIONAL)
         # pattern: ''
+        
+        constant: '7T'
         
         # Remove non-alphanumeric characters (OPTIONAL, default: false)
         # sanitize: true
@@ -172,6 +175,7 @@ study_filter_specs:
   #   - "subject != subject"                  # Exclude if subject is NaN
   #   - "subject.str.contains('test')"        # Exclude subjects with 'test' in ID
   exclude:
+    - "subject != subject"                  # Exclude if subject is NaN
     - PatientID.str.contains('18932')
     - PatientID.str.contains('Hippo')
     - PatientID.str.contains('CAD')
@@ -517,9 +521,9 @@ bidsignore:
 stages:
   query: "results/0_query"        # Query results (studies.tsv)
   filter: "results/1_filter"      # Filtered studies (studies_filtered.tsv)
-  download: "/nfs/khan/datasets/SNSX/master/7T/bids/sourcedata"  # Downloaded DICOMs
-  convert: "results/3_convert"    # Initial BIDS conversion + QC reports
-  fix: "results/4_fix"            # Fixed BIDS dataset
+  download: "/nfs/khan/datasets/SNSX/cfmm2bids/results/2_download" # Downloaded DICOMs
+  convert: "/nfs/khan/datasets/SNSX/cfmm2bids/results/3_convert"    # Initial BIDS conversion + QC reports
+  fix: "/nfs/khan/datasets/SNSX/cfmm2bids/results/4_fix"            # Fixed BIDS dataset
 
 
 # ============================================================================
