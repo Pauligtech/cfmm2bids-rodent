@@ -124,14 +124,12 @@ def jcamp_read(data):
         try:
             with open(data) as fh:
                 return jcamp_parse(fh)
-        except OSError:
-            pass
-        except (TypeError, ValueError):
-            # Was not a valid filename, so continue trying other options
-            pass
         except OSError as err:
             if err.errno != 63:
                 raise
+        except (TypeError, ValueError):
+            # Was not a valid filename, so continue trying other options
+            pass
 
     # It was not a filename, so it should be a string
     # Make sure that data is str and not bytes
