@@ -513,6 +513,10 @@ bidsignore:
   - "*MIP.json"
   - "*R2starw.nii.gz"
   - "*R2starw.json"
+  - '*_acq-b1Div_*'
+  - '*_b1DivImg.*'
+  - '*_TB1Map.*'
+  - '*echo*T1map.*'
 
 # ============================================================================
 # INTERMEDIATE OUTPUT FOLDERS (OPTIONAL)
