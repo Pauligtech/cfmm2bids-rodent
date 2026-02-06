@@ -189,7 +189,10 @@ def infotodict(seqinfo):
                 info[func_resting_R].append(s.series_id)
 
         # ==================================================diffusion========================================================
-        elif "dwi" in s.series_description.lower() or "diff3d" in s.series_description.lower():
+        elif (
+            "dwi" in s.series_description.lower()
+            or "diff3d" in s.series_description.lower()
+        ):
             info[dwi].append(s.series_id)
 
     return info
