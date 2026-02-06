@@ -16,7 +16,7 @@
 
 # Path to CFMM credentials file (REQUIRED)
 # This file contains your login credentials for accessing CFMM DICOM data
-credentials_file: ~/.uwo_credentials
+credentials_file: ~/.uwo_credentials.bd
 
 # Final output directory for the BIDS dataset (REQUIRED)
 # Absolute or relative paths can be used, will be relative to working folder
@@ -43,14 +43,14 @@ search_specs:
   - dicom_query:
       # Study description pattern (supports wildcards with *)
       # Example: "MyStudy^*" matches studies starting with "MyStudy^"
-      study_description: Khan^NeuroAnalytics
+      study_description: Khan^*
       
       # Study date range (format: YYYYMMDD or YYYYMMDD-YYYYMMDD)
       # Examples:
       #   20230101-           (all studies from Jan 1, 2023 onwards)
       #   20230101-20231231   (studies in 2023)
       #   20230515            (studies on May 15, 2023 only)
-      study_date: 20170101-
+      study_date: 20230101-
       
       # Patient name pattern (OPTIONAL)
       # Example: "Smith^John" or "AppKI2.hTau.*" (regex supported)
@@ -64,32 +64,24 @@ search_specs:
     # Metadata mappings: Extract subject and session IDs from DICOM fields
     metadata_mappings:
       # Subject ID extraction (REQUIRED)
-      subject: 
+      subject:
         # DICOM field to extract from
         # Common options: PatientID, PatientName, StudyDescription
         source: PatientID
 
         # Pre-map extracted values to new values (OPTIONAL)
         # Example: map  to session numbers
-        premap:
-          '2021_08_18_snSx_TLE_7T_p059': '2021_08_18_SNSX_P059'
-          '2020_02_18_snSx_p042': '2020_02_18_SNSX_P042'
-          '2021_09_15_SNSX_TLE_7T_P060': '2021_09_15_SNSX_P060'
-          '2021_09_21_SNSX_TLE_7T_P061': '2021_09_21_SNSX_P061'
-          '2022_04_27_089': '2022_04_27_SNSX_P089'
-          '2023_01_24_108': '2023_01_24_SNSX_P108'
-          '2023_01_24_109': '2023_01_24_SNSX_P109'
-          '2023_02_16_112': '2023_02_16_SNSX_P112'
-          '2023_03_16_SNSX_C41': '2023_03_16_SNSX_C041'
-          '2018_01_23_snSx_p015': '2018_01_23_SNSX_P015'
-          '2024_07_08_SNSX_C50': '2024_07_08_SNSX_C050'
-
+        # map:
+        #   194.4193.34.2.1.441.1: Sub-001
+        #   Subj04: Subj003 #e.g. if incorrect ID used
+      
+        
         # Regex pattern to extract subject ID (OPTIONAL)
         # Use capture group () to extract the desired part
         # Examples:
         #   '_([^_]+)$'                    extracts last part after underscore
         #   '[sS][fF][cC][-_]?([0-9]+)'   extracts numeric ID from SFC-123 format
-        pattern: '[sS][nN][sS][xX]_([cCpP][0-9]+)$'
+        pattern: '[sS][uU][bB][-_]([a-zA-Z0-9]+)'
         
         # Remove non-alphanumeric characters (OPTIONAL, default: false)
         # Ensures subject IDs are BIDS-compliant (alphanumeric only)
@@ -172,17 +164,7 @@ study_filter_specs:
   #   - "subject != subject"                  # Exclude if subject is NaN
   #   - "subject.str.contains('test')"        # Exclude subjects with 'test' in ID
   exclude:
-    - PatientID.str.contains('18932')
-    - PatientID.str.contains('Hippo')
-    - PatientID.str.contains('CAD')
-    - PatientID.str.contains('snSx3')
-    - PatientID.str.contains('Snx3')
-    - PatientID.str.contains('snSX3')
-    - PatientID.str.contains('ASL')
-    - PatientID.str.contains('roy')
-    - PatientID.str.contains('Hipp7T')
-    - PatientID.str.contains('DiffModel')
-    - PatientID.str.contains('cadaver')
+    # - StudyInstanceUID == '2.16.756.5.5.200.8323328.24337.1724894202.13553'
   
   # Remap sessions based on study date ordering (OPTIONAL)
   # This feature automatically remaps session IDs to time-based labels
@@ -262,7 +244,7 @@ cfmm2tar_download_options: '--skip-derived'
 #  to a console reboot or some other adverse event.)
 # If these should be separate subjects/sessions, use the above remapping to 
 #  deal with the conflict.
-merge_duplicate_studies: true
+merge_duplicate_studies: false
 
 
 # ============================================================================
@@ -288,185 +270,19 @@ dcmconfig_json: resources/dcm2niix_config.json
 #   --use-enhanced-dicom       Support enhanced DICOM files (use for Bruker)
 #   --no-sanitize-jsons        Don't sanitize dates from JSON sidecar files
 # Multiple options can be space-separated
-heudiconv_options: '--minmeta --no-sanitize-jsons'
+heudiconv_options: '--minmeta --use-enhanced-dicom --no-sanitize-jsons'
 
 
-# 5. Post-conversion fixes for BIDS compliance
-# =============================================================================
-# These fixes add required metadata fields that are not automatically extracted
-# from DICOM headers during heudiconv conversion.
-#
-# References:
-#   - cfmm2bids workflow: https://github.com/khanlab/cfmm2bids
-#   - BIDS qMRI Appendix: https://bids-specification.readthedocs.io/en/stable/appendices/qmri.html
-#   - qMRLab protocols: https://qmrlab.readthedocs.io/en/master/protocols.html
-#   - Protocol PDFs: SNSX_TLE_7tApril2025.pdf (pages 8-10 for MP2RAGE)
-#   - Original MP2RAGE paper: Marques et al. (2010) doi:10.1016/j.neuroimage.2009.10.002
-#   - Original SA2RAGE paper: Eggenschwiler et al. (2012) doi:10.1002/mrm.23145
-# =============================================================================
+# ============================================================================
+# 5. FIX STAGE - Post-conversion fixes
+# ============================================================================
+# Apply fixes to the BIDS dataset after conversion, and are meant to 
+# capture any changes you would need to make for bids-compliance, e.g. 
+# missing JSON entries, or removing extra files that are not required. 
+# These fixes are defined in the workflow/lib/bids_fixes.py module.
+# Fixes are applied sequentially in the order listed.
 
 post_convert_fixes:
-  # ---------------------------------------------------------------------------
-  # File cleanup rules
-  # ---------------------------------------------------------------------------
-  # cfmm2bids fix action: remove
-  # Reference: https://github.com/khanlab/cfmm2bids#fix-configuration-post_convert_fixes
-  
-  # Remove unwanted ROI files generated during reconstruction
-  - name: remove_rois
-    pattern: "anat/*ROI1.*"
-    action: remove
-
-  # Remove auto-generated scans.tsv files (will be regenerated properly)
-  - name: remove_scans_tsv
-    pattern: "*scans.tsv"
-    action: remove
-
-  # ===========================================================================
-  # SA2RAGE (TB1SRGE) B1+ mapping metadata
-  # ===========================================================================
-  # TB1SRGE = Saturation-prepared with 2 Rapid Gradient Echoes for B1+ mapping
-  #
-  # References:
-  #   - Original SA2RAGE paper: Eggenschwiler et al. (2012) doi:10.1002/mrm.23145
-  #   - BIDS TB1SRGE spec: https://bids-specification.readthedocs.io/en/stable/modality-specific-files/magnetic-resonance-imaging-data.html
-  #   - cfmm2bids update_json action: https://github.com/khanlab/cfmm2bids#fix-configuration-post_convert_fixes
-  #
-  # NOTE: The TB1SRGE protocol is not explicitly documented in the provided
-  # protocol PDFs. These values should be verified against the actual scanner
-  # protocol or DICOM headers. The NumberShots calculation for TB1SRGE is
-  # complex per BIDS spec (requires BaseResolution, PartialFourier, GRAPPA
-  # reference lines, and acceleration factor).
-  #
-  # Current values are placeholders based on typical SA2RAGE parameters:
-  # - NumberShots: Depends on matrix size and acceleration (placeholder: 1)
-  # - RepetitionTimeExcitation: Time between RF excitations in GRE block
-  # - RepetitionTimePreparation: Time between preparation pulse blocks (TR_SA2RAGE)
-  #
-  # TODO: Verify these values with scanner operator or DICOM headers
-  # ===========================================================================
-  - name: sa2rage_metadata
-    pattern: "fmap/*TB1SRGE.json"
-    action: update_json
-    updates:
-      # NumberShots: Number of RF excitations per readout block
-      # BIDS spec notes TB1SRGE calculation is complex - see reference implementation
-      # Reference: https://bids-specification.readthedocs.io/en/stable/appendices/qmri.html#tb1srge-specific-notes
-      # TODO: Calculate from BaseResolution, PartialFourier, RefLines, AccelFactor
-      NumberShots: 1
-      # RepetitionTimeExcitation: Time between excitation pulses in the GRE readout
-      # Typical SA2RAGE value ~2ms for fast readout
-      # Reference: Eggenschwiler et al. (2012) doi:10.1002/mrm.23145
-      RepetitionTimeExcitation: 0.002
-      # RepetitionTimePreparation: TR between saturation preparation blocks
-      # Typical SA2RAGE value 2.0-2.5s for B1+ mapping
-      # Reference: Eggenschwiler et al. (2012) doi:10.1002/mrm.23145
-      RepetitionTimePreparation: 2.4
-
-  # ===========================================================================
-  # MP2RAGE T1 mapping metadata
-  # ===========================================================================
-  # From SNSX_TLE_7tApril2025.pdf: mp2rage_sag_700iso_cs_us4_pTx (pages 8-10)
-  #
-  # References:
-  #   - Original MP2RAGE paper: Marques et al. (2010) doi:10.1016/j.neuroimage.2009.10.002
-  #   - BIDS MP2RAGE spec: https://bids-specification.readthedocs.io/en/stable/appendices/qmri.html#mp2rage-specific-notes
-  #   - qMRLab MP2RAGE docs: https://qmrlab.readthedocs.io/en/master/protocols.html
-  #   - cfmm2bids update_json action: https://github.com/khanlab/cfmm2bids#fix-configuration-post_convert_fixes
-  #
-  # Protocol parameters (from SNSX_TLE_7tApril2025.pdf pages 8-10):
-  #   - TR: 6000.0 ms (RepetitionTimePreparation)
-  #   - TE: 2.27 ms
-  #   - Echo spacing: 7.7 ms (RepetitionTimeExcitation)
-  #   - Turbo factor: 224
-  #   - Slices per slab: 224
-  #   - TI1: 860 ms
-  #   - TI2: 2700 ms
-  #   - Flip angle 1: 4 deg
-  #   - Flip angle 2: 5 deg
-  #   - Phase partial Fourier: Off (= 1.0)
-  #   - Slice partial Fourier: Off (= 1.0)
-  #   - Multi-slice mode: Single shot
-  #   - Sparse Sampling: On (US 4.0x compressed sensing)
-  #
-  # NumberShots calculation (BIDS qMRI appendix):
-  #   Reference: https://bids-specification.readthedocs.io/en/stable/appendices/qmri.html#mp2rage-specific-notes
-  #   If SlicePartialFourier = Off (1.0):
-  #     before = SlicesPerSlab × (SlicePartialFourier - 0.5) = 224 × 0.5 = 112
-  #     after = SlicesPerSlab / 2 = 224 / 2 = 112
-  #   Therefore: NumberShots = [112, 112] or equivalently 224
-  #
-  # Alternative: Since the BIDS validator may expect a single integer,
-  # and SlicePartialFourier is Off, NumberShots = SlicesPerSlab = 224
-  # ===========================================================================
-  - name: mp2rage_metadata
-    pattern: "anat/*MP2RAGE.json"
-    action: update_json
-    updates:
-      # NumberShots: RF excitations to reconstruct the volume
-      # Calculated as SlicesPerSlab since SlicePartialFourier is Off
-      # Source: SNSX_TLE_7tApril2025.pdf page 8 - "Slices per slab: 224", "Turbo factor: 224"
-      # Reference: https://bids-specification.readthedocs.io/en/stable/appendices/qmri.html#mp2rage-specific-notes
-      NumberShots: 224
-      # RepetitionTimeExcitation: Echo spacing between excitation pulses
-      # Source: SNSX_TLE_7tApril2025.pdf page 9 - "Echo spacing: 7.7 ms"
-      # Converted to seconds: 7.7 ms = 0.0077 s
-      # Reference: BIDS qMRI appendix states EchoSpacing corresponds to RepetitionTimeExcitation
-      RepetitionTimeExcitation: 0.0077
-      # RepetitionTimePreparation: Time between inversion pulses (MP2RAGE TR)
-      # Source: SNSX_TLE_7tApril2025.pdf page 8 - "TR: 6000.0 ms"
-      # Converted to seconds: 6000 ms = 6.0 s
-      # Reference: qMRLab docs - "RepetitionTime (in DICOM) between two inversion pulses"
-      RepetitionTimePreparation: 6.0
-
-  # ===========================================================================
-  # Phase image units
-  # ===========================================================================
-  # BIDS requires the "Units" field for phase images
-  # Phase data should be in radians (rad) per BIDS specification
-  #
-  # References:
-  #   - BIDS common principles (Units): https://bids-specification.readthedocs.io/en/stable/common-principles.html#units
-  #   - cfmm2bids update_json action: https://github.com/khanlab/cfmm2bids#fix-configuration-post_convert_fixes
-  #
-  # Note: Siemens phase images are typically stored in arbitrary integer units
-  # but should be scaled to radians for BIDS compliance. Most downstream tools
-  # (e.g., QSMxT, SEPIA) expect radians and handle scaling internally.
-  # ===========================================================================
-  
-  # ASPIRE multi-echo GRE phase images
-  # Pattern matches: sub-*_acq-ASPIRE_*_part-phase_MEGRE.json
-  - name: phase_units_megre
-    pattern: "*/*part-phase*.json"
-    action: update_json
-    updates:
-      # Units: Phase measurement units
-      # BIDS requires SI units - radians for phase images
-      # Reference: https://bids-specification.readthedocs.io/en/stable/common-principles.html#units
-      Units: "rad"
-
-  # TB1SRGE (SA2RAGE) phase images  
-  # Pattern matches: sub-*_flip-*_inv-*_part-phase_TB1SRGE.json
-  - name: phase_units_tb1srge
-    pattern: "*/*phase.json"
-    action: update_json
-    updates:
-      # Units: Phase measurement units for B1+ mapping
-      # Reference: https://bids-specification.readthedocs.io/en/stable/common-principles.html#units
-      Units: "rad"
-
-  # Generic phase images (catch-all for any other phase data)
-  # Pattern matches: sub-*_*phase.json (files ending in "phase.json")
-  - name: phase_units_generic
-    pattern: "*/*phase.json"
-    action: update_json
-    updates:
-      # Units: Phase measurement units
-      # Reference: https://bids-specification.readthedocs.io/en/stable/common-principles.html#units
-      Units: "rad"
-
-
-  # Additional fixes can be added below as needed.
   # Example 1: Remove unwanted files
   # - name: remove_unwanted_fieldmaps
   #   pattern: "fmap/*dir-AP*"
@@ -498,13 +314,8 @@ post_convert_fixes:
   #   action: remove_duplicate_niftis
 
 # Lines to add to the .bidsignore file
-bidsignore:
-  - "*_MIP.nii.gz"
-  - "*_MIP.json"
-  - "*MIP.nii.gz"
-  - "*MIP.json"
-  - "*R2starw.nii.gz"
-  - "*R2starw.json"
+# bidsignore:
+#  - 
 
 # ============================================================================
 # INTERMEDIATE OUTPUT FOLDERS (OPTIONAL)
@@ -517,7 +328,7 @@ bidsignore:
 stages:
   query: "results/0_query"        # Query results (studies.tsv)
   filter: "results/1_filter"      # Filtered studies (studies_filtered.tsv)
-  download: "/nfs/khan/datasets/SNSX/master/7T/bids/sourcedata"  # Downloaded DICOMs
+  download: "results/2_download"  # Downloaded DICOMs
   convert: "results/3_convert"    # Initial BIDS conversion + QC reports
   fix: "results/4_fix"            # Fixed BIDS dataset
 
