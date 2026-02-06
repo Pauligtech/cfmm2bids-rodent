@@ -1,13 +1,4 @@
-# ============================================================================
-# cfmm2bids Configuration Template
-# ============================================================================
-# This is a comprehensive template showing all available configuration options
-# for the cfmm2bids workflow. Copy this file and customize it for your project.
-#
-# For working examples, see:
-#   - config_trident15T.yml (Trident 15T scanner configuration)
-#   - config_cogms.yml (CogMS study configuration)
-# ============================================================================
+# SNSX 7T cfmm2bids configuration
 
 
 # ============================================================================
