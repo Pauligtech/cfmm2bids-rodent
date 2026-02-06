@@ -67,7 +67,7 @@ search_specs:
       subject: 
         # DICOM field to extract from
         # Common options: PatientID, PatientName, StudyDescription
-        source: PatientID
+        source: PatientName
 
         # Pre-map extracted values to new values (OPTIONAL)
         # Example: map  to session numbers
@@ -84,6 +84,11 @@ search_specs:
           '2018_01_23_snSx_p015': '2018_01_23_SNSX_P015'
           '2024_07_08_SNSX_C50': '2024_07_08_SNSX_C050'
 
+        map:
+          C01: C001
+          C02: C002
+          C03: C003
+          
 
         # Regex pattern to extract subject ID (OPTIONAL)
         # Use capture group () to extract the desired part
@@ -176,7 +181,6 @@ study_filter_specs:
   #   - "subject.str.contains('test')"        # Exclude subjects with 'test' in ID
   exclude:
     - "subject != subject"                  # Exclude if subject is NaN
-    - PatientID.str.contains('18932')
     - PatientID.str.contains('Hippo')
     - PatientID.str.contains('CAD')
     - PatientID.str.contains('snSx3')
