@@ -198,11 +198,28 @@ def get_bvec_bval(in_dcm_path):
     logger.info(f"Extracting bvec/bval from DICOM: {in_dcm_path}")
 
     # read dicom header
-    H = pydicom.read_file(in_dcm_path, stop_before_pixels=True)
+    H = pydicom.dcmread(in_dcm_path, stop_before_pixels=True)
 
-    # read bruker headers
-    method = jcamp_parse(H[0x0177, 0x1100].value.decode("utf-8").splitlines())
+    # read bruker headers (private tag 0x0177,0x1100 may be absent)
+    elem = H.get((0x0177, 0x1100))
+    if elem is None or not getattr(elem, "value", None):
+        logger.warning(
+            "Bruker private tag (0x0177,0x1100) missing or empty in %s; "
+            "skipping bvec/bval extraction.",
+            in_dcm_path,
+        )
+        return None, None
 
+    try:
+        method = jcamp_parse(elem.value.decode("utf-8").splitlines())
+    except (AttributeError, UnicodeDecodeError) as exc:
+        logger.warning(
+            "Failed to parse Bruker private header in %s: %s; "
+            "skipping bvec/bval extraction.",
+            in_dcm_path,
+            exc,
+        )
+        return None, None
     # Bvalue information
     bval = method["$PVM_DwEffBval"]["value"]
     bvec = method["$PVM_DwDir"]["value"]
