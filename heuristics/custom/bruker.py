@@ -369,10 +369,10 @@ def process_dwi_bvec_bval(session_path, seqinfo_list):
 
 def custom_callable(prefix, outtypes, item_dicoms):
     """Custom post-processing after conversion"""
-    print("inside custom callable")
-    print(f"prefix {prefix}")
-    print(f"outtypes: {outtypes}")
-    print(f"item_dicoms: {item_dicoms}")
+    logger.debug("Entered custom_callable hook")
+    logger.debug("custom_callable prefix: %s", prefix)
+    logger.debug("custom_callable outtypes: %s", outtypes)
+    logger.debug("custom_callable item_dicoms: %s", item_dicoms)
 
     if prefix.split("_")[-1] == "dwi":
         bvec, bval = get_bvec_bval(item_dicoms[0])
