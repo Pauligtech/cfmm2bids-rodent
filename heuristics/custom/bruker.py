@@ -175,26 +175,43 @@ class JCAMPData(dict):
 
 def get_bvec_bval(in_dcm_path):
     """
-    Extract bvec and bval from DICOM file.
+    Extract diffusion gradient directions (bvec) and b-values (bval) from a
+    Bruker DICOM file.
 
-    This is a dummy implementation. The actual extraction logic
-    should be inserted here based on the specific DICOM tags
-    used by Bruker scanners.
+    The function expects a Bruker diffusion-weighted DICOM where the private
+    tag (0x0177, 0x1100) contains a JCAMP-DX encoded "method" header. From
+    this header it reads the following fields:
+
+    - ``"$PVM_DwEffBval"``: 1D sequence of effective b-values (s/mm^2).
+    - ``"$PVM_DwDir"``: flat sequence of gradient directions; its length must
+      be a multiple of 3 and is reshaped to (3, n_directions).
+    - ``"$PVM_DwBMat"``: flat sequence of 3x3 diffusion weighting matrices;
+      its length must be a multiple of 9 and is reshaped to (9, n_directions).
+
+    The ``"$PVM_DwDir"`` vectors are used together with the singular value
+    decomposition (SVD) of the ``"$PVM_DwBMat"`` matrices to determine the
+    final gradient directions. If the number of b-values is larger than the
+    number of input direction vectors, additional zero vectors are inserted
+    for b0 volumes (except for OGSE protocols with 55 b-values, where the b0
+    volume is assumed to be included in ``"$PVM_DwDir"``).
 
     Parameters
     ----------
-    in_dcm_path : str or Path
-        Path to the DICOM file
+    in_dcm_path : str or pathlib.Path
+        Path to the Bruker diffusion-weighted DICOM file.
 
     Returns
     -------
-    tuple
+    tuple[numpy.ndarray, numpy.ndarray]
         (bvec, bval) where:
-        - bvec: numpy array of shape (3, n_directions)
-        - bval: numpy array of shape (n_directions,)
+
+        - bvec: numpy array of shape (3, n_directions) containing the final,
+          polarity-corrected gradient directions.
+        - bval: numpy array of shape (n_directions,) containing the
+          corresponding b-values.
     """
-    # Dummy implementation - returns example data
-    # TODO: Replace with actual DICOM tag extraction using pydicom
+    # Extract bvec/bval information from the Bruker-specific method header
+    # encoded in the DICOM private tag (0x0177, 0x1100).
     logger.info(f"Extracting bvec/bval from DICOM: {in_dcm_path}")
 
     # read dicom header
