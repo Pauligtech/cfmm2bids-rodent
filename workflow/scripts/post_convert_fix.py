@@ -82,7 +82,7 @@ if fixes is not None:
             logger.error(traceback.format_exc())
             # continue to next fix
 
-    fixes_used = ([f["action"] for f in fixes],)
+    fixes_used = [f["action"] for f in fixes]
 
 logger.info(f"✅ Done with {src.name}: {num_changes} files modified.")
 
