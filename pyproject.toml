@@ -42,7 +42,6 @@ ignore = [
     "B005", #Using `.strip()` with multi-character strings is misleading
     "B025", #try-except block with duplicate exception `OSError`
     "SIM105", #Use `contextlib.suppress(AttributeError)` instead of `try`-`except`-`pass`
-    "F401" #[*] `custom.bruker.custom_callable` imported but unused
 ]
 
 [tool.ruff.format]
