@@ -289,13 +289,13 @@ def infotodict(seqinfo):
 
     # MIPS
     DIS2D_TOF_SAG = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TOF_rec-DIS2D_sagMIP"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TOFsagMIP_rec-DIS2D_angio"
     )
     DIS2D_TOF_COR = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TOF_rec-DIS2D_corMIP"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TOFcorMIP_rec-DIS2D_angio"
     )
     DIS2D_TOF_TRA = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TOF_rec-DIS2D_traMIP"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-TOFtraMIP_rec-DIS2D_angio"
     )
 
     #########################
@@ -349,7 +349,7 @@ def infotodict(seqinfo):
         "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-ASPIRE_rec-DIS2D_T2starw"
     )
     DIS2D_aspire_R2_star_GRE = create_key(
-        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-ASPIRE_rec-DIS2D_R2starw"
+        "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_acq-ASPIRE_rec-DIS2D_R2starmap"
     )
     # MEMP2RAGE   #--- note: the indiv echos for mp2rage from memp2rage are not typically needed
     me_t1map = create_key(

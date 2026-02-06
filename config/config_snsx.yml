@@ -21,7 +21,7 @@ credentials_file: ~/.uwo_credentials
 # Final output directory for the BIDS dataset (REQUIRED)
 # Absolute or relative paths can be used, will be relative to working folder
 # Default: "bids"
-final_bids_dir: "bids"
+final_bids_dir: "/nfs/khan/datasets/SNSX/bids"
 
 # Force re-query of DICOM server (OPTIONAL, default: false)
 # By default, if the query results (studies.tsv) already exist and the
@@ -507,12 +507,6 @@ post_convert_fixes:
 
 # Lines to add to the .bidsignore file
 bidsignore:
-  - "*_MIP.nii.gz"
-  - "*_MIP.json"
-  - "*MIP.nii.gz"
-  - "*MIP.json"
-  - "*R2starw.nii.gz"
-  - "*R2starw.json"
   - '*_acq-b1Div_*'
   - '*_b1DivImg.*'
   - '*_TB1Map.*'
