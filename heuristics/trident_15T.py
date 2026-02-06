@@ -1,5 +1,5 @@
 # Import bruker custom_callable for extracting bval/bvec from dicoms
-from custom.bruker import custom_callable
+from custom.bruker import custom_callable  # noqa: F401
 
 
 # ======================================================================================================================
