@@ -3,7 +3,12 @@ import json
 
 import numpy as np
 import pandas as pd
-from cfmm2tar import query_metadata
+
+# Import cfmm2tar conditionally - only needed for actual queries
+try:
+    from cfmm2tar import query_metadata
+except ImportError:
+    query_metadata = None
 
 
 def compute_query_hash(search_specs, query_kwargs=None):
@@ -92,6 +97,12 @@ def validate_column(df, col):
 
 
 def query_dicoms(search_specs, **query_metadata_kwargs):
+    if query_metadata is None:
+        raise ImportError(
+            "cfmm2tar is required for querying DICOM metadata. "
+            "Install it with: pip install cfmm2tar"
+        )
+
     all_dfs = []
 
     for spec in search_specs:
@@ -107,27 +118,35 @@ def query_dicoms(search_specs, **query_metadata_kwargs):
         # Apply metadata extraction settings
         mappings = spec.get("metadata_mappings", {})
         for target, mapping in mappings.items():
-            source_col = mapping["source"]
-            series = df_[source_col]
+            # Check if a constant value is specified
+            if "constant" in mapping:
+                # Use constant value for all rows
+                series = pd.Series(
+                    mapping["constant"], index=df_.index, dtype=object
+                )
+            else:
+                # Extract from source column
+                source_col = mapping["source"]
+                series = df_[source_col]
 
-            # Optional remapping of specific values
-            if "premap" in mapping:
-                series = series.replace(mapping["premap"])
+                # Optional remapping of specific values
+                if "premap" in mapping:
+                    series = series.replace(mapping["premap"])
 
-            # Optional regex extraction
-            if "pattern" in mapping:
-                series = series.str.extract(mapping["pattern"], expand=False)
+                # Optional regex extraction
+                if "pattern" in mapping:
+                    series = series.str.extract(mapping["pattern"], expand=False)
 
-            # Optional cleaning / sanitization
-            if mapping.get("sanitize", True):
-                series = series.str.replace(r"[^A-Za-z0-9]", "", regex=True)
+                # Optional cleaning / sanitization
+                if mapping.get("sanitize", True):
+                    series = series.str.replace(r"[^A-Za-z0-9]", "", regex=True)
 
-            # Optional remapping of specific values
-            if "map" in mapping:
-                series = series.replace(mapping["map"])
+                # Optional remapping of specific values
+                if "map" in mapping:
+                    series = series.replace(mapping["map"])
 
-            if "fillna" in mapping:
-                series = series.fillna(mapping["fillna"])
+                if "fillna" in mapping:
+                    series = series.fillna(mapping["fillna"])
 
             # Assign to target field
             df_[target] = series

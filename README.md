@@ -135,6 +135,24 @@ search_specs:
         source: StudyDate       # Use StudyDate as session ID
 ```
 
+#### Using Constant Values
+
+You can use the `constant` option to set all subjects or sessions to a fixed value instead of extracting from DICOM fields. This is useful when:
+- All data should use the same session label (e.g., all scans from the same scanner like "15T")
+- Running a single-subject study where all data belongs to the same subject (e.g., "pilot")
+
+```yaml
+metadata_mappings:
+  subject:
+    source: PatientID
+    pattern: '_([^_]+)$'
+    sanitize: true
+  session:
+    constant: '15T'  # All sessions will be labeled as 'ses-15T'
+```
+
+When `constant` is specified, it takes precedence over any `source` field, which can be omitted or will be ignored. The constant value is applied to all matching studies.
+
 ### Filter Configuration (`study_filter_specs`)
 Post-filter studies with include/exclude rules:
 ```yaml
@@ -385,4 +403,51 @@ pixi run snakemake download --cores all
 # Convert and generate QC reports
 pixi run snakemake convert --cores all
 ```
+
+## Testing
+
+The repository includes unit and integration tests to ensure code quality and workflow correctness.
+
+### Running Tests
+
+```bash
+# Run all tests
+pytest workflow/lib/tests/ -v
+
+# Run unit tests only (test individual functions)
+pytest workflow/lib/tests/test_bids_fixes.py -v
+
+# Run integration tests (test workflow with Snakemake dry-run)
+pytest workflow/lib/tests/test_integration.py -v
+```
+
+### Test Structure
+
+- **Unit tests** (`test_bids_fixes.py`): Test individual functions in the bids_fixes module
+- **Integration tests** (`test_integration.py`): Test the complete Snakemake workflow using dry-run mode
+- **Test fixtures** (`workflow/lib/tests/fixtures/`): Sample data for testing
+  - `sample_studies.tsv`: Mock query results 
+  - `test_config.yml`: Test configuration file
+
+### Integration Testing Approach
+
+The integration tests use Snakemake's dry-run mode (`--dry-run` flag) to validate that:
+- The workflow can parse successfully without errors
+- All stages (query, filter, download, convert, fix) can be planned
+- The workflow correctly handles pre-generated TSV query outputs
+
+This approach allows testing the workflow without requiring:
+- CFMM server access or credentials
+- Actual DICOM data
+- Full workflow execution (which would be time-consuming)
+
+The tests use pre-populated query results (TSV files) to simulate the query stage, allowing the workflow to proceed through planning all subsequent stages.
+
+### CI/CD
+
+Tests run automatically on every push and pull request via GitHub Actions:
+- Lint checks (ruff)
+- Code formatting checks (ruff, snakefmt)
+- Unit tests
+- Integration tests (dry-run)
 
