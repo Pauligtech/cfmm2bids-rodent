@@ -302,7 +302,7 @@ def infotodict(seqinfo):
     #### Multi-echo GRE #####
     #########################
 
-# Multi-echo GRE (Susc3D)
+    # Multi-echo GRE (Susc3D)
     mag_echo_GRE = create_key(
         "{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_part-mag_MEGRE"
     )
