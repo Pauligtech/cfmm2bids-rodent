@@ -464,6 +464,11 @@ post_convert_fixes:
       # Reference: https://bids-specification.readthedocs.io/en/stable/common-principles.html#units
       Units: "rad"
 
+  # Not sure why MP2RAGE.bvec/bval are produced, bug in dicom or dcm2niix
+  - name: remove_extra_bvec_bval
+    pattern: "anat/*MP2RAGE.bv*"
+    action: remove
+  
 
   # Additional fixes can be added below as needed.
   # Example 1: Remove unwanted files
