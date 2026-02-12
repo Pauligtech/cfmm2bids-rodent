@@ -567,21 +567,6 @@ rule validate_final:
         "bids-validator-deno {input.bids_dir} --format text &> {output.validator_txt}"
 
 
-def get_runtime_for_final_bids(wildcards, input):
-    """
-    Calculate runtime based on number of sessions (10 minutes per session).
-
-    Args:
-        wildcards: Snakemake wildcards (unused, but required by Snakemake interface)
-        input: Snakemake input files (unused, but required by Snakemake interface)
-
-    Returns:
-        int: Runtime in minutes
-    """
-    num_sessions = len(sessions)
-    return num_sessions * 10
-
-
 rule assemble_final_bids:
     """
     Assemble the final BIDS dataset by copying from the fixed BIDS directory.
@@ -596,7 +581,7 @@ rule assemble_final_bids:
     threads: 1
     resources:
         mem_mb=4000,
-        runtime=get_runtime_for_final_bids,
+        runtime=int(len(sessions) * 5),
     log:
         "logs/assemble_final_bids/assemble.log",
     shell:
