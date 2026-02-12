@@ -38,3 +38,5 @@ stages:
   download: "test_results/2_download"
   convert: "test_results/3_convert"
   fix: "test_results/4_fix"
+
+download_cache: "test_results/download_cache"

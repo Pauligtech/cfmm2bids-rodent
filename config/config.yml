@@ -346,6 +346,12 @@ stages:
   convert: "results/3_convert"    # Initial BIDS conversion + QC reports
   fix: "results/4_fix"            # Fixed BIDS dataset
 
+# Centralized download cache (OPTIONAL)
+# Downloads are cached by StudyInstanceUID to avoid re-downloading
+# the same data when subject/session mappings differ
+# Default: "results/download_cache"
+download_cache: "results/download_cache"
+
 
 # ============================================================================
 # NOTES AND TIPS

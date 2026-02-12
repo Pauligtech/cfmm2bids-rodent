@@ -23,6 +23,9 @@ stage_download = Path(stages.get("download", "results/2_download"))
 stage_convert = Path(stages.get("convert", "results/3_convert"))
 stage_fix = Path(stages.get("fix", "results/4_fix"))
 
+# Centralized download cache
+download_cache = Path(config.get("download_cache", "results/download_cache"))
+
 final_bids_dir = Path(config.get("final_bids_dir", "bids"))
 
 # ----------
@@ -100,6 +103,9 @@ df.to_csv(stage_filter / "studies_filtered.tsv", sep="\t", index=False)
 subjects = df[["subject", "session"]].drop_duplicates().subject
 sessions = df[["subject", "session"]].drop_duplicates().session
 
+# Get unique UIDs for download cache
+unique_uids = df["StudyInstanceUID"].unique().tolist()
+
 
 rule all:
     input:
@@ -159,11 +165,48 @@ def get_uid_from_wildcards(wildcards):
             )
 
 
-rule cfmm2tar:
+def get_uids_from_wildcards(wildcards):
+    """Get list of UIDs for a subject/session pair (handles merge_duplicate_studies)."""
+    matches = lookup(
+        query=f"subject == '{wildcards.subject}' and session == '{wildcards.session}'",
+        within=df,
+    )
+    if isinstance(matches, tuple):
+        return [matches.StudyInstanceUID]
+    else:
+        return [m.StudyInstanceUID for m in matches]
+
+
+rule cfmm2tar_by_uid:
+    """
+    Download DICOM study to centralized cache indexed by UID.
+    This allows re-use of downloads when the same UID has different subject/session mappings.
+    """
     params:
-        uid=get_uid_from_wildcards,
+        uid=lambda wildcards: f"-u {wildcards.uid}",
         cfmm2tar_download_options=config["cfmm2tar_download_options"],
         creds_file=config["credentials_file"],
+    output:
+        dicoms_dir=directory(download_cache / "{uid}"),
+    log:
+        "logs/download_by_uid/{uid}.log",
+    threads: 1
+    resources:
+        mem_mb=4000,
+        runtime=15,
+    shell:
+        "cfmm2tar -c {params.creds_file} {params.cfmm2tar_download_options} {params.uid} {output.dicoms_dir} &> {log}"
+
+
+rule link_to_tar:
+    """
+    Create subject/session directory with symlinks to cached UID downloads.
+    This avoids re-downloading the same data when subject/session mappings differ.
+    """
+    input:
+        cached_dirs=lambda wildcards: expand(
+            download_cache / "{uid}", uid=get_uids_from_wildcards(wildcards)
+        ),
     output:
         dicoms_dir=directory(stage_download / "dicoms/sub-{subject}/ses-{session}"),
     log:
@@ -171,9 +214,9 @@ rule cfmm2tar:
     threads: 1
     resources:
         mem_mb=4000,
-        runtime=15,
-    shell:
-        "cfmm2tar -c {params.creds_file} {params.cfmm2tar_download_options} {params.uid} {output.dicoms_dir} &> {log}"
+        runtime=5,
+    script:
+        "../scripts/link_to_tar.py"
 
 
 rule heudiconv:
@@ -186,7 +229,7 @@ rule heudiconv:
       separately with heudiconv, then merges outputs with series ID offsetting
     """
     input:
-        dicoms_dir=rules.cfmm2tar.output.dicoms_dir,
+        dicoms_dir=rules.link_to_tar.output.dicoms_dir,
         heuristic=config["heuristic"],
         base_heuristics=config.get("base_heuristics", []),
         dcmconfig_json=config["dcmconfig_json"],
