@@ -571,6 +571,7 @@ rule assemble_final_bids:
     """
     Assemble the final BIDS dataset by copying from the fixed BIDS directory.
     This ensures the final BIDS directory is always clean and matches the requested subjects.
+    Uses cp -RL to follow symlinks and copy actual files instead of broken symlinks.
     """
     input:
         validator_txt=stage_fix / "qc/final_bids_validator.txt",  # require validated
@@ -580,8 +581,8 @@ rule assemble_final_bids:
     threads: 1
     resources:
         mem_mb=4000,
-        runtime=10,
+        runtime=int(len(sessions) * 5),
     log:
         "logs/assemble_final_bids/assemble.log",
     shell:
-        "cp -R {input.bids_dir} {output.bids_dir} &> {log}"
+        "cp -RL {input.bids_dir} {output.bids_dir} &> {log}"
