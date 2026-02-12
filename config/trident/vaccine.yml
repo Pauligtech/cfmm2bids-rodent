@@ -1,6 +1,6 @@
 # general 
 credentials_file: ~/.uwo_credentials.bd
-final_bids_dir: "bids"
+final_bids_dir: "/nfs/trident3/mri/prado/vaccine/bids"
 
 # 1. query
 search_specs:
@@ -114,10 +114,16 @@ post_convert_fixes:
 
 #intermediate output folders
 stages:
-  query: "results/0_query"
-  filter: "results/1_filter"
-  download: "/nfs/trident3/mri/cfmm2bids/results/2_download"
-  convert: "/nfs/trident3/mri/cfmm2bids/results/3_convert_vaccine"
-  fix: "/nfs/trident3/mri/cfmm2bids/results/4_fix_vaccine"
+  query: "results/vaccine/0_query"
+  filter: "results/vaccine/1_filter"
+  download: "results/vaccine/2_download"
+  convert: "results/vaccine/3_convert"
+  fix: "results/vaccine/4_fix"
+
+# Centralized download cache 
+# Downloads are cached by StudyInstanceUID to avoid re-downloading
+# the same data when subject/session mappings differ
+# Default: "results/download_cache"
+download_cache: "/nfs/trident3/mri/cfmm2bids/results/download_cache"
 
 
