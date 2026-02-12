@@ -6,11 +6,25 @@ final_bids_dir: "bids"
 search_specs:
   - dicom_query:
       study_description:  "*VaccIBV"
-      study_date: 20250401-
+      study_date: 20250405-
     metadata_mappings:
       subject:
         source: PatientName
-        pattern: '(AS[a-Z0-9A-Z]+)$'
+        pattern: '(AS[a-z0-9A-Z]+)$'
+        sanitize: true
+        # constant: 'pilot'  # Use constant value for all subjects (OPTIONAL)
+
+      session:
+        source: StudyDate
+        # constant: '15T'  # Use constant value for all sessions (OPTIONAL)
+  
+  - dicom_query:
+      study_description:  "*VaccIBV"
+      study_date: 20250401-20250404 #these started at session 3 (12m), without previous scans
+    metadata_mappings:
+      subject:
+        source: PatientName
+        pattern: '(AS[a-z0-9A-Z]+)$'
         sanitize: true
         # constant: 'pilot'  # Use constant value for all subjects (OPTIONAL)
         premap:
@@ -24,12 +38,16 @@ search_specs:
 
       session:
         source: StudyDate
-        # constant: '15T'  # Use constant value for all sessions (OPTIONAL)
-
+        constant: '12m'  # Use constant value for all sessions (OPTIONAL)
+  
  
 query_kwargs:
   additional_tags:
-    "00100030": PatientBirthDate
+#    "00100030": PatientBirthDate
+ 
+query_kwargs:
+  additional_tags:
+#    "00100030": PatientBirthDate
   
 
 
@@ -52,7 +70,7 @@ study_filter_specs:
     # Zero-pad session labels (OPTIONAL, default: false)
     # If true, pads session labels with leading zeros for proper alphanumeric sorting
     # Example: '00m', '06m', '12m' instead of '0m', '6m', '12m'
-    # zero_pad: false
+    #zero_pad: true
     
     # Reference date mode (OPTIONAL)
     # Default (commented out): Uses first session per subject as reference (baseline mode)
@@ -64,9 +82,9 @@ study_filter_specs:
     # If not specified, generates labels like '0m', '6m', '12m' automatically
     # Custom mapping example (e.g., for time since baseline):
     time_to_label:
-      0m: '1'
-      3m: '2'
-      6m: '3'
+      0: '06m'
+      3: '09m'
+      6: '12m'
  
 # 3. download
 cfmm2tar_download_options: '--skip-derived'
@@ -96,7 +114,7 @@ post_convert_fixes:
 
 #intermediate output folders
 stages:
-  query: "results/1_query"
+  query: "results/0_query"
   filter: "results/1_filter"
   download: "/nfs/trident3/mri/cfmm2bids/results/2_download"
   convert: "/nfs/trident3/mri/cfmm2bids/results/3_convert_vaccine"
