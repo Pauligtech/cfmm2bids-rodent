@@ -216,7 +216,7 @@ rule link_to_tar:
         mem_mb=4000,
         runtime=5,
     script:
-        "../scripts/link_to_tar.py"
+        "scripts/link_to_tar.py"
 
 
 rule heudiconv:
