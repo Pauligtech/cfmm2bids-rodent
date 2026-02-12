@@ -177,7 +177,7 @@ def get_uids_from_wildcards(wildcards):
         return [m.StudyInstanceUID for m in matches]
 
 
-rule download_by_uid:
+rule cfmm2tar_by_uid:
     """
     Download DICOM study to centralized cache indexed by UID.
     This allows re-use of downloads when the same UID has different subject/session mappings.
@@ -198,7 +198,7 @@ rule download_by_uid:
         "cfmm2tar -c {params.creds_file} {params.cfmm2tar_download_options} {params.uid} {output.dicoms_dir} &> {log}"
 
 
-rule cfmm2tar:
+rule link_to_tar:
     """
     Create subject/session directory with symlinks to cached UID downloads.
     This avoids re-downloading the same data when subject/session mappings differ.
@@ -215,34 +215,8 @@ rule cfmm2tar:
     resources:
         mem_mb=4000,
         runtime=5,
-    run:
-        from pathlib import Path
-        import os
-
-        output_dir = Path(output.dicoms_dir)
-        output_dir.mkdir(parents=True, exist_ok=True)
-
-        # Ensure log directory exists
-        log_path = Path(log[0])
-        log_path.parent.mkdir(parents=True, exist_ok=True)
-
-        # Create symlinks to all tar files from the cached UID directories
-        for cached_dir in input.cached_dirs:
-            cached_path = Path(cached_dir)
-            for tar_file in cached_path.glob("*.tar*"):
-                symlink_path = output_dir / tar_file.name
-                # Remove existing symlink/file if it exists
-                if symlink_path.exists() or symlink_path.is_symlink():
-                    symlink_path.unlink()
-                # Create relative symlink for portability
-                relative_target = os.path.relpath(tar_file, output_dir)
-                symlink_path.symlink_to(relative_target)
-
-        # Log the operation
-        with open(log[0], "w") as f:
-            f.write(f"Symlinked tar files from cached UIDs:\n")
-            for cached_dir in input.cached_dirs:
-                f.write(f"  {cached_dir}\n")
+    script:
+        "../scripts/link_to_tar.py"
 
 
 rule heudiconv:
@@ -255,7 +229,7 @@ rule heudiconv:
       separately with heudiconv, then merges outputs with series ID offsetting
     """
     input:
-        dicoms_dir=rules.cfmm2tar.output.dicoms_dir,
+        dicoms_dir=rules.link_to_tar.output.dicoms_dir,
         heuristic=config["heuristic"],
         base_heuristics=config.get("base_heuristics", []),
         dcmconfig_json=config["dcmconfig_json"],
