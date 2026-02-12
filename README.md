@@ -41,9 +41,18 @@ Post-filters the queried studies based on include/exclude rules. Features includ
 Output: `studies_filtered.tsv` - Filtered list of studies to process
 
 ### 3. Download Stage (`results/2_download`)
-Downloads DICOM studies from CFMM using `cfmm2tar`. When `merge_duplicate_studies: true` is enabled, multiple studies for the same subject/session are downloaded as separate tar files in the same directory.
+Downloads DICOM studies from CFMM using `cfmm2tar`. The workflow uses a centralized download cache to avoid re-downloading the same data:
 
-Output: `dicoms/sub-*/ses-*/` - Downloaded DICOM files (tar archives)
+- **Download Cache** (`results/download_cache` by default): Downloaded tar files are stored here, indexed by `StudyInstanceUID`
+- **Subject/Session Directories** (`dicoms/sub-*/ses-*/`): These contain symlinks to the cached tar files
+
+This two-tier structure ensures that:
+- If the same study (UID) is needed for multiple subject/session combinations, it's only downloaded once
+- When `merge_duplicate_studies: true` is enabled, multiple studies for the same subject/session are linked as separate tar files in the subject/session directory
+
+Output: 
+- `download_cache/{StudyInstanceUID}/` - Cached tar archives indexed by UID
+- `dicoms/sub-*/ses-*/` - Subject/session directories with symlinks to cached tar files
 
 ### 4. Convert Stage (`results/3_convert`)
 Converts DICOMs to BIDS format using heudiconv and generates QC reports. Features include:
@@ -167,6 +176,21 @@ study_filter_specs:
 - `cfmm2tar_download_options`: Options passed to cfmm2tar (e.g., `--skip-derived`)
 - `credentials_file`: Path to CFMM credentials file
 - `merge_duplicate_studies`: If `true`, automatically merge multiple studies for the same subject/session (default: `false`)
+- `download_cache`: Centralized cache directory for downloaded tar files, indexed by StudyInstanceUID (default: `results/download_cache`)
+
+#### Download Cache
+
+The workflow uses a centralized download cache to optimize performance and avoid redundant downloads:
+
+- **Cache Location**: By default `results/download_cache`, configurable via the `download_cache` config option
+- **Indexing**: Tar files are stored by their `StudyInstanceUID`, not by subject/session
+- **Symlinking**: Subject/session directories (`dicoms/sub-*/ses-*/`) contain symlinks to cached tar files
+- **Benefit**: If the same study (UID) appears with different subject/session mappings, it's only downloaded once
+
+Example scenario where caching helps:
+- Study UID `1.2.3.4` originally mapped to `sub-01/ses-01`
+- Config is updated to map the same UID to `sub-pilot/ses-scanner01`
+- The tar file is reused from cache without re-downloading
 
 #### Merging Duplicate Studies
 
