@@ -20,12 +20,12 @@ def filter_files(fl):
 def assign_series_by_pattern(
     seqinfo,
     *,
-    match,              # predicate: match(s) -> bool
-    keys,               # tuple/list of heudiconv keys in acquisition order (e.g., (orig, den), (mag,swi,phase))
-    info,               # the heudiconv info dict to append into
-    exclude=None,       # optional predicate: exclude(s) -> bool
+    match,  # predicate: match(s) -> bool
+    keys,  # tuple/list of heudiconv keys in acquisition order (e.g., (orig, den), (mag,swi,phase))
+    info,  # the heudiconv info dict to append into
+    exclude=None,  # optional predicate: exclude(s) -> bool
     sort_key=lambda s: s.series_id,
-    handled=None,       # optional set to track handled series_ids
+    handled=None,  # optional set to track handled series_ids
     drop_incomplete_tail=False,
 ):
     """
@@ -131,7 +131,9 @@ def infotodict(seqinfo):
     )
 
     # diffusion
-    dwi = create_key("sub-{subject}/{session}/dwi/sub-{subject}_{session}_run-{item:01d}_dwi")
+    dwi = create_key(
+        "sub-{subject}/{session}/dwi/sub-{subject}_{session}_run-{item:01d}_dwi"
+    )
 
     info = {
         t2w_tse: [],
@@ -158,7 +160,8 @@ def infotodict(seqinfo):
     # Exclude complex data where image_type contains 'NON_PARALLEL'
     assign_series_by_pattern(
         seqinfo,
-        match=lambda s: ("swi" in s.series_description.lower()) or ("t2star" in s.series_description.lower()),
+        match=lambda s: ("swi" in s.series_description.lower())
+        or ("t2star" in s.series_description.lower()),
         exclude=lambda s: any("NON_PARALLEL" in t for t in s.image_type),
         keys=(t2starw_mag, t2starw_swi, t2starw_phase),
         info=info,
@@ -186,7 +189,6 @@ def infotodict(seqinfo):
         drop_incomplete_tail=True,  # safer if the pair is incomplete
     )
 
-
     # GRE "pre/post gad by inference" special case:
     # - collect Gre3Dinvivo
     # - if last one looks like post, split by whether "post" appears in description
@@ -194,7 +196,10 @@ def infotodict(seqinfo):
     gre_candidates.sort(key=lambda s: s.series_id)
 
     gre_handled_as_pre_post_gad = False
-    if len(gre_candidates) > 1 and "post" in gre_candidates[-1].series_description.lower():
+    if (
+        len(gre_candidates) > 1
+        and "post" in gre_candidates[-1].series_description.lower()
+    ):
         gre_handled_as_pre_post_gad = True
         for s in gre_candidates:
             if "post" in s.series_description.lower():
@@ -235,7 +240,9 @@ def infotodict(seqinfo):
                 info[func_resting_R].append(s.series_id)
 
         # Diffusion
-        elif ("dwi" in s.series_description.lower()) or ("diff3d" in s.series_description.lower()):
+        elif ("dwi" in s.series_description.lower()) or (
+            "diff3d" in s.series_description.lower()
+        ):
             info[dwi].append(s.series_id)
 
     return info
