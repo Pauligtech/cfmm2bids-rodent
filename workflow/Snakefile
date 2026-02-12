@@ -217,18 +217,26 @@ rule cfmm2tar:
         runtime=5,
     run:
         from pathlib import Path
-        import shutil
+        import os
 
         output_dir = Path(output.dicoms_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
+
+        # Ensure log directory exists
+        log_path = Path(log[0])
+        log_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Create symlinks to all tar files from the cached UID directories
         for cached_dir in input.cached_dirs:
             cached_path = Path(cached_dir)
             for tar_file in cached_path.glob("*.tar*"):
                 symlink_path = output_dir / tar_file.name
-                # Create relative symlink
-                symlink_path.symlink_to(tar_file.resolve())
+                # Remove existing symlink/file if it exists
+                if symlink_path.exists() or symlink_path.is_symlink():
+                    symlink_path.unlink()
+                # Create relative symlink for portability
+                relative_target = os.path.relpath(tar_file, output_dir)
+                symlink_path.symlink_to(relative_target)
 
         # Log the operation
         with open(log[0], "w") as f:
