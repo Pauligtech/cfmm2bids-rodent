@@ -44,29 +44,41 @@ def assign_series_by_pattern(
     """
     cands = []
     for s in seqinfo:
+        if s.series_id in handled:
+            print(f"{s.series_id} already handled, skipping")
+            continue
         if not match(s):
+            print(f"{s.series_id} not matched, skipping")
             continue
         if exclude is not None and exclude(s):
+            print(f"{s.series_id} excluded, skipping")
             continue
+        print(f"appending {s.series_id} to list of candidates")
         cands.append(s)
 
     cands.sort(key=sort_key)
 
     n = len(keys)
     if n == 0:
+        print("no candidates, returning []")
         return []
 
     # Optionally drop trailing partial group to avoid "shift" if acquisition is incomplete
     usable = (len(cands) // n) * n if drop_incomplete_tail else len(cands)
 
+    print(f"usable candidates: {cands[:usable]}")
+
     assigned = []
     for i, s in enumerate(cands[:usable]):
         k = keys[i % n]
+        print(f"assigning {s.series_id} to key {info[k]}")
         info[k].append(s.series_id)
         assigned.append(s.series_id)
+
         if handled is not None:
             handled.add(s.series_id)
 
+    print(f"assigned {assigned}")
     return assigned
 
 
@@ -98,14 +110,27 @@ def infotodict(seqinfo):
         "sub-{subject}/{session}/anat/sub-{subject}_{session}_acq-TurboRARE_rec-denoised_run-{item:01d}_T2w"
     )
 
-    t2w_gre = create_key(
-        "sub-{subject}/{session}/anat/sub-{subject}_{session}_acq-GRE_run-{item:01d}_T2starw"
+    t2w_gre_mag = create_key(
+        "sub-{subject}/{session}/anat/sub-{subject}_{session}_acq-GRE_rec-orig_run-{item:01d}_part-mag_T2starw"
     )
-    t2w_pregad = create_key(
-        "sub-{subject}/{session}/anat/sub-{subject}_{session}_acq-PreGadGRE_run-{item:01d}_T2starw"
+    t2w_gre_phase = create_key(
+        "sub-{subject}/{session}/anat/sub-{subject}_{session}_acq-GRE_rec-orig_run-{item:01d}_part-phase_T2starw"
     )
-    t2w_postgad = create_key(
-        "sub-{subject}/{session}/anat/sub-{subject}_{session}_acq-PostGadGRE_run-{item:01d}_T2starw"
+    t2w_gre_den = create_key(
+        "sub-{subject}/{session}/anat/sub-{subject}_{session}_acq-GRE_rec-denoised_run-{item:01d}_part-mag_T2starw"
+    )
+
+    t2w_pregad_orig = create_key(
+        "sub-{subject}/{session}/anat/sub-{subject}_{session}_acq-PreGadGRE_rec-orig_run-{item:01d}_T2starw"
+    )
+    t2w_postgad_orig = create_key(
+        "sub-{subject}/{session}/anat/sub-{subject}_{session}_acq-PostGadGRE_rec-orig_run-{item:01d}_T2starw"
+    )
+    t2w_pregad_den = create_key(
+        "sub-{subject}/{session}/anat/sub-{subject}_{session}_acq-PreGadGRE_rec-denoised_run-{item:01d}_T2starw"
+    )
+    t2w_postgad_den = create_key(
+        "sub-{subject}/{session}/anat/sub-{subject}_{session}_acq-PostGadGRE_rec-denoised_run-{item:01d}_T2starw"
     )
 
     t2starw_mag = create_key(
@@ -137,7 +162,9 @@ def infotodict(seqinfo):
 
     info = {
         t2w_tse: [],
-        t2w_gre: [],
+        t2w_gre_mag: [],
+        t2w_gre_phase: [],
+        t2w_gre_den: [],
         t2w_rarevfl_orig: [],
         t2w_rarevfl_den: [],
         t2w_turborare_orig: [],
@@ -146,8 +173,10 @@ def infotodict(seqinfo):
         t2starw_swi: [],
         t2starw_phase: [],
         tof: [],
-        t2w_pregad: [],
-        t2w_postgad: [],
+        t2w_pregad_orig: [],
+        t2w_postgad_orig: [],
+        t2w_pregad_den: [],
+        t2w_postgad_den: [],
         func_resting_R: [],
         func_resting_RV: [],
         dwi: [],
@@ -195,18 +224,46 @@ def infotodict(seqinfo):
     gre_candidates = [s for s in seqinfo if "Gre3Dinvivo" in s.series_description]
     gre_candidates.sort(key=lambda s: s.series_id)
 
-    gre_handled_as_pre_post_gad = False
-    if (
-        len(gre_candidates) > 1
-        and "post" in gre_candidates[-1].series_description.lower()
-    ):
-        gre_handled_as_pre_post_gad = True
+    # first handle the special case (certain subjects where Pre not labelled, and
+    # exactly 7 scans exist, these are 2x Pre -> 5x Post, all orig (no denoised)
+    if len(gre_candidates) == 7:
         for s in gre_candidates:
             if "post" in s.series_description.lower():
-                info[t2w_postgad].append(s.series_id)
+                info[t2w_postgad_orig].append(s.series_id)
             else:
-                info[t2w_pregad].append(s.series_id)
+                info[t2w_pregad_orig].append(s.series_id)
             handled.add(s.series_id)
+
+    # for remaining cases, assign in repeating pairs (orig, denoised)
+    assign_series_by_pattern(
+        seqinfo,
+        match=lambda s: ("gre3dinvivo" in s.series_description.lower())
+        and ("post" in s.series_description.lower()),
+        keys=(t2w_postgad_orig, t2w_postgad_den),
+        info=info,
+        handled=handled,
+        drop_incomplete_tail=True,  # safer if the pair is incomplete
+    )
+
+    assign_series_by_pattern(
+        seqinfo,
+        match=lambda s: ("gre3dinvivo" in s.series_description.lower())
+        and ("pre" in s.series_description.lower()),
+        keys=(t2w_pregad_orig, t2w_pregad_den),
+        info=info,
+        handled=handled,
+        drop_incomplete_tail=True,  # safer if the pair is incomplete
+    )
+
+    # T2starw GRE: assign in repeating triplets (Mag, Phase, Denoised)
+    assign_series_by_pattern(
+        seqinfo,
+        match=lambda s: "gre3dinvivo" in s.series_description.lower(),
+        keys=(t2w_gre_mag, t2w_gre_phase, t2w_gre_den),
+        info=info,
+        handled=handled,
+        drop_incomplete_tail=True,  # safer if a triplet is incomplete
+    )
 
     # ---------------------------------------------------------------------------------------
     # Main assignment loop for everything else
@@ -216,18 +273,6 @@ def infotodict(seqinfo):
 
         if "tse2d" in s.series_description:
             info[t2w_tse].append(s.series_id)
-
-        elif "Gre3Dinvivo" in s.series_description and gre_handled_as_pre_post_gad:
-            # already handled above (belt + suspenders)
-            continue
-
-        elif "Gre3D" in s.series_description:
-            if "Pre" in s.series_description:
-                info[t2w_pregad].append(s.series_id)
-            elif "Post" in s.series_description:
-                info[t2w_postgad].append(s.series_id)
-            else:
-                info[t2w_gre].append(s.series_id)
 
         elif "TOF3D" in s.series_description:
             info[tof].append(s.series_id)
