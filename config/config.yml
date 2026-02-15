@@ -43,21 +43,21 @@ search_specs:
   - dicom_query:
       # Study description pattern (supports wildcards with *)
       # Example: "MyStudy^*" matches studies starting with "MyStudy^"
-      study_description: Khan^*
+      study_description: Prado^Leq_AB_agg*
 
       # Study date range (format: YYYYMMDD or YYYYMMDD-YYYYMMDD)
       # Examples:
       #   20230101-           (all studies from Jan 1, 2023 onwards)
       #   20230101-20231231   (studies in 2023)
       #   20230515            (studies on May 15, 2023 only)
-      study_date: 20230101-
+      study_date: 202350101-
 
       # Patient name pattern (OPTIONAL)
       # Example: "Smith^John" or "AppKI2.hTau.*" (regex supported)
-      # patient_name: ""
+      patient_name: AppKI2.hTau.APOE*
 
       # Other query parameters (OPTIONAL):
-      # patient_id: ""
+      # patient_id: Prado^Leq_AB_agg_AppKI2.hTau.APOE*
       # study_instance_uid: ""
       # accession_number: ""
 
@@ -67,7 +67,7 @@ search_specs:
       subject:
         # DICOM field to extract from
         # Common options: PatientID, PatientName, StudyDescription
-        source: PatientID
+        source: PatientName
 
         # Constant value for all subjects (OPTIONAL)
         # If specified, all subjects will use this constant value instead of extracting from DICOM
@@ -88,7 +88,7 @@ search_specs:
         # Examples:
         #   '_([^_]+)$'                    extracts last part after underscore
         #   '[sS][fF][cC][-_]?([0-9]+)'   extracts numeric ID from SFC-123 format
-        pattern: '[sS][uU][bB][-_]([a-zA-Z0-9]+)'
+        pattern: '(.+)' 
 
         # Remove non-alphanumeric characters (OPTIONAL, default: false)
         # Ensures subject IDs are BIDS-compliant (alphanumeric only)
@@ -168,17 +168,19 @@ study_filter_specs:
   # Examples:
   #   - "subject.str.startswith('sub')"   # Include only subjects starting with 'sub'
   #   - "session == '01'"                 # Include only first session
-  include:
+  # include:
 
   # Exclude rules (OPTIONAL)
   # Studies matching ANY exclude rule will be filtered out
   # Examples:
   #   - "StudyInstanceUID == '1.2.3.4.5'"     # Exclude specific study by UID
   #   - "PatientID == 'TestSubject'"          # Exclude test subjects
-  #   - "subject != subject"                  # Exclude if subject is NaN
+  #- "subject != subject"                  # Exclude if subject is NaN
   #   - "subject.str.contains('test')"        # Exclude subjects with 'test' in ID
   exclude:
     # - StudyInstanceUID == '2.16.756.5.5.200.8323328.24337.1724894202.13553'
+    - "(subject == 'AppKI2hTauAPOE4712F4') & (session == '20250911')"
+
 
   # Remap sessions based on study date ordering (OPTIONAL)
   # This feature automatically remaps session IDs to time-based labels
@@ -258,7 +260,7 @@ cfmm2tar_download_options: '--skip-derived'
 #  to a console reboot or some other adverse event.)
 # If these should be separate subjects/sessions, use the above remapping to
 #  deal with the conflict.
-merge_duplicate_studies: false
+merge_duplicate_studies: true
 
 
 # ============================================================================
@@ -318,9 +320,9 @@ post_convert_fixes:
   #     Units: rad
 
   # Example 4: Fix NIfTI orientation to RAS+
-  # - name: reorient_nifti
-  #   pattern: "anat/*T1w.nii.gz"
-  #   action: fix_orientation
+  - name: reorient_nifti
+    pattern: "anat/*T1w.nii.gz"
+    action: fix_orientation
 
   # Example 5: Remove duplicate NIfTI files (keeps first alphabetically)
   # - name: remove_duplicates
